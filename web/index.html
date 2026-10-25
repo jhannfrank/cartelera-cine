@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CineScope Perú • Cartelera Nacional de Cines (6 Cadenas)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=30">
+  <script>
+    (function () {
+      try {
+        var tema = localStorage.getItem("pref_tema");
+        var fuente = localStorage.getItem("pref_fuente");
+        if (tema === "light" || tema === "dark") document.documentElement.setAttribute("data-theme", tema);
+        if (fuente === "estandar") document.documentElement.setAttribute("data-font", "estandar");
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <main class="layout">
+    <header class="hero">
+      <div class="hero-top">
+        <div class="hero-intro">
+          <div class="hero-brand-strip">
+            <span class="hero-badge-live"><span class="pulse-dot"></span> EN VIVO</span>
+            <span class="hero-kicker">CineScope Perú • 6 Cadenas Nacionales</span>
+            <div id="scrapedAt" class="hero-timestamp-inline">
+              <span class="freshness-dot"></span>
+              <span>Sincronizado</span>
+            </div>
+          </div>
+          <h1 class="hero-title">Cartelera Nacional de Cines</h1>
+          <p class="hero-subtitle">
+            Horarios, salas y butacas en tiempo real entre 
+            <span class="hero-chain-tag chain-tag-cp">Cineplanet</span>, 
+            <span class="hero-chain-tag chain-tag-cm">Cinemark</span>, 
+            <span class="hero-chain-tag chain-tag-cpl">Cinépolis</span>, 
+            <span class="hero-chain-tag chain-tag-cs">Cine Star</span>, 
+            <span class="hero-chain-tag chain-tag-mt">Movie Time</span> y 
+            <span class="hero-chain-tag chain-tag-uvk">UVK</span>.
+          </p>
+          <p id="updateStatus" class="update-status" hidden></p>
+          <div id="updateProgress" class="update-progress" hidden>
+            <div class="update-progress-track">
+              <div id="updateProgressFill" class="update-progress-fill" style="width: 0%"></div>
+            </div>
+            <div class="update-progress-meta">
+              <span id="updateProgressPercent">0%</span>
+              <span id="updateProgressTime"></span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-actions">
+          <div class="update-buttons">
+            <button id="updateDataBtn" type="button" class="btn-primary-action">
+              <span class="btn-action-icon">🔄</span>
+              <span class="btn-action-text">Actualizar Cartelera</span>
+            </button>
+            <button id="stopUpdateBtn" type="button" class="btn-danger" hidden>Detener</button>
+            <button id="toggleUpdateOptionsBtn" type="button" class="btn-icon" aria-expanded="false" title="Opciones de actualizacion">⚙</button>
+            <button id="toggleSettingsBtn" type="button" class="btn-icon" aria-expanded="false" title="Configuracion: tema y tipografia">🎛</button>
+          </div>
+          <div id="settingsPanel" class="update-options-panel" hidden>
+            <p class="settings-title">Configuracion</p>
+            <div class="field update-option">
+              <span>Tema</span>
+              <div class="segmented" id="temaSegmented" role="radiogroup" aria-label="Tema de color">
+                <button type="button" class="segmented-opt" data-valor="sistema">Sistema</button>
+                <button type="button" class="segmented-opt" data-valor="light">Claro</button>
+                <button type="button" class="segmented-opt" data-valor="oled">🎬 Modo Cine OLED</button>
+              </div>
+            </div>
+            <div class="field update-option">
+              <span>Tipografia de datos</span>
+              <div class="segmented" id="fuenteSegmented" role="radiogroup" aria-label="Tipografia de datos">
+                <button type="button" class="segmented-opt" data-valor="mono">Monoespaciada</button>
+                <button type="button" class="segmented-opt" data-valor="estandar">Estandar</button>
+              </div>
+            </div>
+            <p class="update-hint">"Sistema" sigue el tema de tu sistema operativo/navegador. "Monoespaciada" usa IBM Plex Mono en horas, disponibilidad y tablas (estilo panel de instrumentos); "Estandar" usa la misma tipografia que el resto del texto.</p>
+          </div>
+          <div id="updateOptionsPanel" class="update-options-panel" hidden>
+            <div class="update-option-head">
+              <span>📍 Alcance por Provincia</span>
+              <button type="button" id="refrescarUbicacionesBtn" class="link-refresh" title="Volver a consultar ciudades y sedes (ignora la cache de 6h)">↻ actualizar lista</button>
+            </div>
+            <label class="field update-option">
+              <select id="updateProvincia">
+                <option value="">País completo (todas las provincias)</option>
+              </select>
+            </label>
+
+            <!-- Banner dinámico explicativo de provincia seleccionada -->
+            <div id="updateProvinciaInfo" class="update-provincia-banner">
+              💡 <strong>Modo automático:</strong> Si seleccionas una provincia como <em>Lima</em>, se sincronizan automáticamente todas sus sedes de las 6 cadenas sin tener que marcar nada.
+            </div>
+
+            <!-- Contenedor interactivo de sedes específicas opcionales filtradas en cascada -->
+            <div class="update-sedes-container" id="updateSedesContainer">
+              <div class="update-sedes-header">
+                <div class="update-sedes-title-group">
+                  <span class="update-sedes-title">Sedes específicas (opcional)</span>
+                  <span class="update-sedes-counter" id="updateSedesCount">Todas incluidas automáticamente</span>
+                </div>
+                <button type="button" class="btn-toggle-custom-sedes" id="toggleCustomSedesBtn" aria-expanded="false">
+                  <span>Filtrar sedes específicas ▾</span>
+                </button>
+              </div>
+
+              <div id="customSedesPanel" class="custom-sedes-panel" hidden>
+                <div class="custom-sedes-toolbar">
+                  <div class="custom-sedes-search-wrap">
+                    <input type="text" id="customSedesSearch" placeholder="Buscar sede (ej. Alcázar, Jockey, San Miguel)..." class="custom-sedes-search-input">
+                    <button type="button" id="customSedesSearchClear" class="custom-sedes-search-clear" hidden>✕</button>
+                  </div>
+                  <div class="custom-sedes-actions">
+                    <button type="button" id="btnSelectAllSedes" class="btn-sedes-action">Marcar todas</button>
+                    <button type="button" id="btnClearAllSedes" class="btn-sedes-action">Desmarcar</button>
+                  </div>
+                </div>
+
+                <div id="customSedesList" class="custom-sedes-list" role="group" aria-label="Lista de sedes filtradas">
+                  <!-- Generado dinámicamente con checkboxes y badges de cadena -->
+                </div>
+              </div>
+
+              <!-- Select oculto mantenido para compatibilidad del formulario -->
+              <select id="updateSedes" multiple hidden size="1"></select>
+            </div>
+
+            <label class="field update-option" id="updateDiasWrap">
+              <span>Días de anticipación (alcance)</span>
+              <input id="updateDias" type="number" min="1" max="60" placeholder="Todos los días (recomendado)">
+            </label>
+            <label class="update-checkbox">
+              <input id="updateDisponibilidad" type="checkbox">
+              <span>Traer disponibilidad profunda de asientos libres (Cineplanet - añade tiempo adicional)</span>
+            </label>
+            <p class="update-hint">⚡ <strong>Modo Rápido activo (~5-7s):</strong> Extrae al instante las 6 cadenas completas a nivel nacional (películas, salas, idiomas, formatos y horarios). La disponibilidad detallada de butacas de Cineplanet está desactivada por defecto para máxima velocidad; si la activas, se sugiere fijar 1 o 2 días de alcance.</p>
+          </div>
+        </div>
+      </div>
+      <div class="quick-dock">
+        <div class="quick-bar">
+          <label class="field quick-search">
+            <span>Buscar por titulo</span>
+            <div class="search-input-wrap">
+              <input id="searchInput" type="search" placeholder="Ej: Avengers, Duna, Robot Salvaje...">
+              <button type="button" id="searchClearBtn" class="search-clear-btn" aria-label="Limpiar búsqueda" hidden title="Borrar búsqueda">✕</button>
+            </div>
+          </label>
+          <div class="field quick-view">
+            <!-- Selector Segmentado Táctil y Vistas Analíticas Integradas -->
+            <div class="view-segmented-dock" id="viewSegmentedBar" role="tablist" aria-label="Cambio de vista de cartelera">
+              <button type="button" class="view-segmented-btn is-active" data-view="cinematic" role="tab" aria-selected="true" title="Vista Cartelera Cinema">
+                <span class="view-btn-icon">🎬</span>
+                <span class="view-btn-label">Afiches</span>
+              </button>
+              <button type="button" class="view-segmented-btn" data-view="cards" role="tab" aria-selected="false" title="Vista Tarjetas Compactas">
+                <span class="view-btn-icon">📱</span>
+                <span class="view-btn-label">Móvil</span>
+              </button>
+              <button type="button" class="view-segmented-btn" data-view="timeline" role="tab" aria-selected="false" title="Vista Línea de Tiempo">
+                <span class="view-btn-icon">⏱️</span>
+                <span class="view-btn-label">Horas</span>
+              </button>
+              <button type="button" class="view-segmented-btn" data-view="table" role="tab" aria-selected="false" title="Vista Tabla">
+                <span class="view-btn-icon">📋</span>
+                <span class="view-btn-label">Tabla</span>
+              </button>
+              <div class="view-dropdown-wrap" title="Otras vistas analíticas">
+                <select id="viewModeExtra" class="view-select-more" aria-label="Más vistas analíticas">
+                  <option value="" disabled selected>Otras ▾</option>
+                  <option value="calendar">📅 Calendario</option>
+                  <option value="kanban">📊 Tablero</option>
+                  <option value="heatmap">🔥 Calor</option>
+                </select>
+              </div>
+            </div>
+            <!-- Select oculto sincronizado para compatibilidad con código JS y localStorage -->
+            <select id="viewMode" hidden>
+              <option value="cinematic" selected>🎬 Cartelera Cinema (Estilo Afiche)</option>
+              <option value="cards">📱 Tarjetas compactas</option>
+              <option value="timeline">⏱️ Línea de tiempo (por hora)</option>
+              <option value="table">📋 Tabla de funciones</option>
+              <option value="calendar">📅 Calendario semanal</option>
+              <option value="kanban">📊 Tablero por cadena</option>
+              <option value="heatmap">🔥 Mapa de calor</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Barra de Filtros Rápidos (Quick Access Pills) en Dos Niveles -->
+        <div class="quick-pills-container" id="quickPillsBar" role="toolbar" aria-label="Filtros rápidos">
+          <!-- Fila 1: Selección de Cadenas -->
+          <div class="quick-pills-row chain-pills-strip">
+            <span class="quick-pills-section-label">Cadena:</span>
+            <div class="quick-pills-scroll">
+              <button type="button" class="quick-pill-btn is-active" data-pill="chain-all" id="pillChainAll">✨ Todas</button>
+              <button type="button" class="quick-pill-btn" data-pill="cineplanet" id="pillCineplanet">🟠 Cineplanet</button>
+              <button type="button" class="quick-pill-btn" data-pill="cinemark" id="pillCinemark">🔴 Cinemark</button>
+              <button type="button" class="quick-pill-btn" data-pill="cinepolis" id="pillCinepolis">🔵 Cinépolis</button>
+              <button type="button" class="quick-pill-btn" data-pill="cinestar" id="pillCineStar">⭐ Cine Star</button>
+              <button type="button" class="quick-pill-btn" data-pill="movietime" id="pillMovieTime">🎬 Movie Time</button>
+              <button type="button" class="quick-pill-btn" data-pill="uvk" id="pillUVK">👑 UVK</button>
+            </div>
+          </div>
+
+          <!-- Fila 2: Filtros de Función y Horario -->
+          <div class="quick-pills-row filter-pills-strip">
+            <span class="quick-pills-section-label">Filtros:</span>
+            <div class="quick-pills-scroll">
+              <button type="button" class="quick-pill-btn" data-pill="today" id="pillToday">📅 Hoy</button>
+              <button type="button" class="quick-pill-btn" data-pill="tomorrow" id="pillTomorrow">🌅 Mañana</button>
+              <button type="button" class="quick-pill-btn" data-pill="matine" id="pillMatine">☀️ Matiné (&lt;15h)</button>
+              <button type="button" class="quick-pill-btn" data-pill="noche" id="pillNoche">🌙 Noche (&gt;19h)</button>
+              <button type="button" class="quick-pill-btn" data-pill="dubbed" id="pillDubbed">🗣️ Dobladas</button>
+              <button type="button" class="quick-pill-btn" data-pill="subbed" id="pillSubbed">💬 Subtituladas</button>
+              <button type="button" class="quick-pill-btn" data-pill="imax" id="pillImax">💎 IMAX / XD</button>
+              <button type="button" class="quick-pill-btn" data-pill="oled" id="pillOled" title="Modo ultra-oscuro para sala de cine (OLED)">🎬 Modo Cine</button>
+              <button type="button" class="quick-pill-btn quick-pill-clear" id="pillClear" title="Limpiar todos los filtros activos" hidden>✕ Limpiar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section class="panel summary-panel">
+      <div class="kpi-row">
+        <div id="resultSummary" class="kpi-strip">Cargando datos...</div>
+        <div class="availability-legend" aria-label="Leyenda de disponibilidad de asientos">
+          <span class="legend-item"><svg class="seat-svg seat-alta" viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path d="M4 14v3a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-3h6v3a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-3h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v2H4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h2zm2-9h8v4H6V5zm-2 4h1v3a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V9h1v3H4V9z"/></svg> Alta</span>
+          <span class="legend-item"><svg class="seat-svg seat-media" viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path d="M4 14v3a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-3h6v3a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-3h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v2H4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h2zm2-9h8v4H6V5zm-2 4h1v3a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V9h1v3H4V9z"/></svg> Media</span>
+          <span class="legend-item"><svg class="seat-svg seat-baja" viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path d="M4 14v3a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-3h6v3a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-3h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v2H4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h2zm2-9h8v4H6V5zm-2 4h1v3a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V9h1v3H4V9z"/></svg> Baja</span>
+          <span class="legend-item"><svg class="seat-svg seat-lleno" viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path d="M4 14v3a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-3h6v3a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-3h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v2H4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h2zm2-9h8v4H6V5zm-2 4h1v3a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V9h1v3H4V9z"/></svg> Lleno</span>
+        </div>
+        <button id="groupByFormatToggle" type="button" class="btn-toggle" aria-pressed="false">
+          <span class="btn-toggle-check" aria-hidden="true"></span>
+          Agrupar por formato
+        </button>
+        <button id="openReportBtn" type="button" class="btn-primary btn-report" title="Ver resumen ejecutivo y métricas de cartelera">
+          📊 Reporte Ejecutivo
+        </button>
+        <div class="export-dropdown-group" id="exportDropdownGroup">
+          <button type="button" id="exportMenuBtn" class="btn-secondary btn-export-menu" aria-expanded="false" title="Exportar o compartir cartelera">
+            <span>📤 Exportar ▾</span>
+          </button>
+          <div class="export-dropdown-menu" id="exportDropdownMenu" hidden>
+            <button type="button" id="exportPdfBtn" class="export-opt-btn"><span class="opt-icon">📄</span> Documento PDF</button>
+            <button type="button" id="exportXlsxBtn" class="export-opt-btn"><span class="opt-icon">📊</span> Hoja Excel (XLSX)</button>
+            <button type="button" id="exportCsvBtn" class="export-opt-btn"><span class="opt-icon">📋</span> Archivo CSV</button>
+            <button type="button" id="captureBtn" class="export-opt-btn"><span class="opt-icon">🖼️</span> Enviar Imagen</button>
+            <button type="button" id="shareMobileBtn" class="export-opt-btn"><span class="opt-icon">📲</span> Compartir en WhatsApp</button>
+          </div>
+        </div>
+        <button id="toggleFiltersBtn" type="button" class="btn-secondary toggle-filters-btn">Mostrar filtros</button>
+      </div>
+      <div id="activeFilters" class="active-filters"></div>
+    </section>
+
+    <section id="filtersPanel" class="panel filters-panel" hidden>
+      <!-- Mobile Drawer Header -->
+      <div class="filters-drawer-header no-desktop">
+        <div class="drawer-drag-handle"></div>
+        <div class="drawer-title-row">
+          <span class="drawer-title">⚡ Filtros de Cartelera</span>
+          <button type="button" class="btn-icon drawer-close-btn" id="drawerCloseBtn" aria-label="Cerrar filtros">&times;</button>
+        </div>
+      </div>
+
+      <div class="filter-grid filter-grid-top">
+        <div class="field field-emphasis custom-filter-field">
+          <span>Cadena de cine</span>
+          <div class="chain-pills-selector" id="chainPillsSelector">
+            <button type="button" class="chain-select-pill is-active" data-chain="">Todas</button>
+            <button type="button" class="chain-select-pill" data-chain="Cineplanet">🟠 Cineplanet</button>
+            <button type="button" class="chain-select-pill" data-chain="Cinemark">🔴 Cinemark</button>
+            <button type="button" class="chain-select-pill" data-chain="Cinépolis">🔵 Cinépolis</button>
+            <button type="button" class="chain-select-pill" data-chain="Cine Star">⭐ Cine Star</button>
+            <button type="button" class="chain-select-pill" data-chain="Movie Time">🎬 Movie Time</button>
+            <button type="button" class="chain-select-pill" data-chain="UVK">👑 UVK</button>
+          </div>
+          <select id="chainFilter" multiple hidden>
+            <option value="">Todas las cadenas</option>
+          </select>
+        </div>
+
+        <div class="field field-emphasis custom-filter-field">
+          <div class="field-label-row">
+            <span>Ciudad</span>
+            <span class="field-selection-count" id="citySelectedCount">Todas</span>
+          </div>
+          <div class="custom-checklist-dropdown" id="cityChecklistDropdown">
+            <input type="search" class="checklist-search" id="citySearchInput" placeholder="🔍 Filtrar ciudad...">
+            <div class="checklist-options-scroll" id="cityChecklistOptions">
+              <!-- Generado dinámicamente -->
+            </div>
+          </div>
+          <select id="cityFilter" multiple hidden>
+            <option value="">Todas las ciudades</option>
+          </select>
+        </div>
+
+        <div class="field field-emphasis custom-filter-field">
+          <div class="field-label-row">
+            <span>Cine específico (sede)</span>
+            <span class="field-selection-count" id="venueSelectedCount">Todos</span>
+          </div>
+          <div class="custom-checklist-dropdown" id="venueChecklistDropdown">
+            <input type="search" class="checklist-search" id="venueSearchInput" placeholder="🔍 Buscar cine por sede o distrito...">
+            <div class="checklist-options-scroll" id="venueChecklistOptions">
+              <!-- Generado dinámicamente -->
+            </div>
+          </div>
+          <select id="venueFilter" multiple hidden>
+            <option value="">Todos los cines</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="filter-groups">
+        <section class="filter-group">
+          <h2 class="group-title">Fecha y horario de la funcion</h2>
+          <div class="filter-grid filter-grid-group">
+            <label class="field">
+              <span>Dia de la funcion</span>
+              <select id="dayFilter">
+                <option value="">Cualquier dia</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Horario desde</span>
+              <input id="timeFromFilter" type="time">
+            </label>
+
+            <label class="field">
+              <span>Horario hasta</span>
+              <input id="timeToFilter" type="time">
+            </label>
+          </div>
+        </section>
+
+        <section class="filter-group">
+          <h2 class="group-title">Idioma, formato y genero de la pelicula</h2>
+          <div class="filter-grid filter-grid-group">
+            <label class="field">
+              <span>Idioma</span>
+              <select id="languageFilter">
+                <option value="">Cualquier idioma</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Formato (2D, 3D, etc.)</span>
+              <select id="formatFilter">
+                <option value="">Cualquier formato</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Genero</span>
+              <select id="genreFilter">
+                <option value="">Cualquier genero</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="filter-group">
+          <h2 class="group-title">Orden de los resultados</h2>
+          <div class="filter-grid filter-grid-group">
+            <label class="field">
+              <span>Ordenar por</span>
+              <select id="sortBy">
+                <option value="title_asc">Titulo (A a Z)</option>
+                <option value="title_desc">Titulo (Z a A)</option>
+                <option value="next_showtime_asc">Proxima funcion mas cercana</option>
+                <option value="availability_desc">Mayor disponibilidad de asientos</option>
+                <option value="showtimes_desc">Mas funciones disponibles primero</option>
+                <option value="venues_desc">Mas cines donde se exhibe primero</option>
+                <option value="genre_asc">Genero (A a Z)</option>
+              </select>
+            </label>
+          </div>
+        </section>
+      </div>
+      <div class="actions">
+        <div class="actions-right">
+          <button id="clearFiltersBtn" type="button" class="btn-secondary">✕ Limpiar filtros</button>
+        </div>
+      </div>
+
+      <!-- Mobile Drawer Footer -->
+      <div class="filters-drawer-footer no-desktop">
+        <button type="button" class="btn-secondary" id="drawerClearBtn">Limpiar todo</button>
+        <button type="button" class="btn-primary" id="drawerApplyBtn">Ver resultados</button>
+      </div>
+    </section>
+
+    <section id="results" class="cards"></section>
+
+    <!-- Modal Reporte Ejecutivo -->
+    <div id="reportModal" class="modal-backdrop" hidden>
+      <div class="modal-card report-modal-card" role="dialog" aria-modal="true" aria-labelledby="reportTitle">
+        <header class="report-modal-header">
+          <div class="report-modal-title-area">
+            <span class="report-kicker">Panel Analítico de Cartelera</span>
+            <h2 id="reportTitle">Resumen Ejecutivo</h2>
+            <p id="reportMeta" class="report-meta">Generando análisis...</p>
+          </div>
+          <div class="report-header-actions no-print">
+            <button id="downloadReportPdfBtn" type="button" class="btn-primary" title="Descargar como documento PDF directo">
+              📄 Descargar PDF
+            </button>
+            <button id="shareReportImageBtn" type="button" class="btn-secondary" title="Enviar este reporte como imagen PNG a WhatsApp o portapapeles">
+              🖼️ Enviar Imagen
+            </button>
+            <button id="printReportBtn" type="button" class="btn-secondary" title="Imprimir reporte o vista de impresión">
+              🖨️ Imprimir
+            </button>
+            <button id="shareReportMobileBtn" type="button" class="btn-secondary" title="Compartir en WhatsApp o app móvil">
+              📲 Compartir
+            </button>
+            <button id="copySummaryBtn" type="button" class="btn-secondary" title="Copiar resumen al portapapeles">
+              📋 Copiar
+            </button>
+            <button id="closeReportBtn" type="button" class="btn-icon close-modal-btn" aria-label="Cerrar modal">&times;</button>
+          </div>
+        </header>
+
+        <div id="reportModalBody" class="report-modal-body">
+          <!-- Generado dinámicamente -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Comparador Inteligente: ¿Dónde me conviene verla? -->
+    <div id="matchmakerModal" class="modal-backdrop" hidden>
+      <div class="modal-card matchmaker-modal-card" role="dialog" aria-modal="true" aria-labelledby="matchmakerTitle">
+        <header class="report-modal-header matchmaker-header">
+          <div class="report-modal-title-area">
+            <span class="report-kicker">🎯 Matriz de Decisión y Butacas</span>
+            <h2 id="matchmakerTitle">¿Dónde me conviene ver esta película?</h2>
+            <p id="matchmakerSubtitle" class="report-meta">Comparando las 6 cadenas nacionales en tiempo real...</p>
+          </div>
+          <button id="closeMatchmakerBtn" type="button" class="btn-icon close-modal-btn" aria-label="Cerrar comparador">&times;</button>
+        </header>
+        <div id="matchmakerModalBody" class="matchmaker-body">
+          <!-- Generado dinámicamente -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Ficha Rápida de Función / Ticket Quick Action -->
+    <div id="ticketModal" class="modal-backdrop" hidden>
+      <div class="modal-card ticket-modal-card" role="dialog" aria-modal="true" aria-labelledby="ticketTitle">
+        <header class="ticket-modal-header">
+          <div class="ticket-header-title-wrap">
+            <span class="ticket-kicker">🎟️ Ficha de Función y Compra</span>
+            <h3 id="ticketTitle">Detalle de la Función</h3>
+          </div>
+          <button id="closeTicketBtn" type="button" class="btn-icon close-modal-btn" aria-label="Cerrar ficha">&times;</button>
+        </header>
+        <div id="ticketModalBody" class="ticket-modal-body">
+          <!-- Generado dinámicamente -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Mobile Sticky Floating Nav -->
+    <nav class="mobile-sticky-nav no-print" id="mobileStickyNav" aria-label="Acciones móviles rápidas">
+      <button type="button" class="mobile-nav-btn" id="mobileToggleFiltersBtn">
+        <span class="mobile-nav-icon">⚡</span>
+        <span class="mobile-nav-text">Filtros</span>
+        <span class="mobile-nav-badge" id="mobileFilterBadge" hidden>0</span>
+      </button>
+      <button type="button" class="mobile-nav-btn" id="mobileTodayNavBtn">
+        <span class="mobile-nav-icon">📅</span>
+        <span class="mobile-nav-text">Hoy</span>
+      </button>
+      <button type="button" class="mobile-nav-btn" id="mobileReportNavBtn">
+        <span class="mobile-nav-icon">📊</span>
+        <span class="mobile-nav-text">Reporte</span>
+      </button>
+      <button type="button" class="mobile-nav-btn" id="mobileTopNavBtn">
+        <span class="mobile-nav-icon">⬆️</span>
+        <span class="mobile-nav-text">Arriba</span>
+      </button>
+    </nav>
+    <button type="button" id="scrollTopBtn" class="scroll-top-btn" aria-label="Volver arriba" title="Volver al inicio de la página" hidden>
+      ↑
+    </button>
+  </main>
+
+  <template id="movieTemplate">
+    <article class="card">
+      <div class="card-head">
+        <div>
+          <h2 class="movie-title"></h2>
+          <p class="movie-meta"></p>
+        </div>
+        <a class="movie-link" target="_blank" rel="noopener noreferrer">Ver pelicula</a>
+      </div>
+      <p class="movie-tags"></p>
+      <div class="movie-stats"></div>
+      <div class="movie-venues"></div>
+    </article>
+  </template>
+
+  <!-- Región accesible para anuncios a lectores de pantalla (Aria Live) -->
+  <div id="aria-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="settings.js?v=2"></script>
+  <script src="updater.js?v=12"></script>
+  <script src="app.js?v=22"></script>
+</body>
+</html>

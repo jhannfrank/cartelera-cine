@@ -1,0 +1,13 @@
+__pycache__
+*.py[cod]
+*$py.class
+*.tmp
+.git
+.gitignore
+.vscode
+.claude
+tests_audit.py
+scratch
+README.md
+Dockerfile
+.dockerignore
