@@ -1865,32 +1865,34 @@ function renderCinematicResults(movies) {
     }).join(" ");
 
     card.innerHTML = `
-      <div class="cinematic-poster-col">
-        <div class="cinematic-poster-frame">
-          ${posterHtml}
-          ${durationStr ? `<span class="cinematic-badge-duration">${escapeHTML(durationStr)}</span>` : ""}
-          ${censuraStr ? `<span class="cinematic-badge-censura">${escapeHTML(censuraStr)}</span>` : ""}
+      <div class="cinematic-card-header">
+        <div class="cinematic-poster-col">
+          <div class="cinematic-poster-frame">
+            ${posterHtml}
+            ${durationStr ? `<span class="cinematic-badge-duration">${escapeHTML(durationStr)}</span>` : ""}
+            ${censuraStr ? `<span class="cinematic-badge-censura">${escapeHTML(censuraStr)}</span>` : ""}
+          </div>
+        </div>
+        <div class="cinematic-info-col">
+          <div class="cinematic-title-wrap">
+            <div class="cinematic-title-row">
+              <h2 class="cinematic-movie-title">${highlightText(movie.titulo, state.filters.text)}</h2>
+              <button type="button" class="btn-compare-matchmaker" data-movie-index="${movieIdx}" title="Comparar opciones de Cineplanet y Cinemark para esta película">
+                🎯 ¿Dónde me conviene verla?
+              </button>
+            </div>
+            <div class="cinematic-meta-tags">
+              ${isTrending ? `<span class="cinematic-badge-trending">🔥 Alta demanda / Estreno</span>` : ""}
+              ${chainBadgesHtml}
+              ${movie.genero ? `<span class="cinematic-genre-tag">${escapeHTML(movie.genero)}</span>` : ""}
+            </div>
+          </div>
+          ${awardsHtml}
         </div>
       </div>
-      <div class="cinematic-info-col">
-        <div class="cinematic-title-wrap">
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
-            <h2 class="cinematic-movie-title">${highlightText(movie.titulo, state.filters.text)}</h2>
-            <button type="button" class="btn-compare-matchmaker" data-movie-index="${movieIdx}" title="Comparar opciones de Cineplanet y Cinemark para esta película">
-              🎯 ¿Dónde me conviene verla?
-            </button>
-          </div>
-          <div class="cinematic-meta-tags">
-            ${isTrending ? `<span class="cinematic-badge-trending">🔥 Alta demanda / Estreno</span>` : ""}
-            ${chainBadgesHtml}
-            ${movie.genero ? `<span class="cinematic-genre-tag">${escapeHTML(movie.genero)}</span>` : ""}
-          </div>
-        </div>
-        ${awardsHtml}
-        ${synopsisHtml}
-        <div class="cinematic-chains-grid">
-          ${chainColumnsHtml}
-        </div>
+      ${synopsisHtml}
+      <div class="cinematic-chains-grid">
+        ${chainColumnsHtml}
       </div>
     `;
 
