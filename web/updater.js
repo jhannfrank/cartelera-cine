@@ -273,14 +273,29 @@ function aplicarUbicaciones(datos) {
 }
 
 async function cargarUbicaciones(forzar) {
-  if (isStaticHosting) return;
+  let datos = null;
+
+  // 1. Intentar archivo estático data/ubicaciones.json (funciona en GitHub Pages y en local sin latencia)
   try {
-    const response = await fetch(`/api/ubicaciones${forzar ? "?forzar=1" : ""}`, { cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const datos = await response.json();
+    const respStatic = await fetch(`../data/ubicaciones.json?t=${Date.now()}`);
+    if (respStatic.ok) {
+      datos = await respStatic.json();
+    }
+  } catch (e) {}
+
+  // 2. Si no hay archivo estático y hay backend local disponible, consultar /api/ubicaciones
+  if ((!datos || !datos.ciudades || !datos.ciudades.length) && !isStaticHosting) {
+    try {
+      const response = await fetch(`/api/ubicaciones${forzar ? "?forzar=1" : ""}`, { cache: "no-store" });
+      if (response.ok && (response.headers.get("content-type") || "").includes("json")) {
+        datos = await response.json();
+      }
+    } catch (e) {}
+  }
+
+  // 3. Aplicar las ubicaciones encontradas
+  if (datos && datos.ciudades && datos.ciudades.length) {
     aplicarUbicaciones(datos);
-  } catch (error) {
-    // Si falla, se mantiene la opción país completo
   }
 }
 

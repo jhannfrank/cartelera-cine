@@ -183,7 +183,10 @@ const escapeHTML = (value) =>
 
 function safeUrl(url) {
   if (!url || typeof url !== "string") return "#";
-  const trimmed = url.trim();
+  let trimmed = url.trim();
+  if (window.location.protocol === "https:" && trimmed.startsWith("http://")) {
+    trimmed = "https://" + trimmed.slice(7);
+  }
   if (/^(?:https?:\/\/|\/|#|data:image\/)/i.test(trimmed)) {
     return escapeHTML(trimmed);
   }

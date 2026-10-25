@@ -1,0 +1,513 @@
+{
+  "ciudades": [
+    "Arequipa",
+    "Ayacucho",
+    "Barranca",
+    "Cajamarca",
+    "Callao",
+    "Cañete",
+    "Chiclayo",
+    "Chimbote",
+    "Chincha",
+    "Cusco",
+    "Huancayo",
+    "Huanuco",
+    "Huaral",
+    "Huánuco",
+    "Ilo",
+    "Iquitos",
+    "Jaén",
+    "Juliaca",
+    "Lima",
+    "Moquegua",
+    "Pisco",
+    "Piura",
+    "Pucallpa",
+    "Puno",
+    "Sullana",
+    "Tacna",
+    "Tarapoto",
+    "Tingo María",
+    "Trujillo",
+    "Tumbes"
+  ],
+  "sedes": [
+    {
+      "nombre": "Cine Star AYACUCHO",
+      "cadena": "Cine Star",
+      "ciudad": "Ayacucho"
+    },
+    {
+      "nombre": "Cine Star CHIMBOTE",
+      "cadena": "Cine Star",
+      "ciudad": "Chimbote"
+    },
+    {
+      "nombre": "Cine Star CHORRILLOS SP",
+      "cadena": "Cine Star",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Cine Star CHOSICA",
+      "cadena": "Cine Star",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Cine Star COMAS",
+      "cadena": "Cine Star",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Cine Star EXCELSIOR",
+      "cadena": "Cine Star",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Cine Star ILO",
+      "cadena": "Cine Star",
+      "ciudad": "Ilo"
+    },
+    {
+      "nombre": "Cine Star MOQUEGUA",
+      "cadena": "Cine Star",
+      "ciudad": "Moquegua"
+    },
+    {
+      "nombre": "Cine Star PORTEÑO",
+      "cadena": "Cine Star",
+      "ciudad": "Callao"
+    },
+    {
+      "nombre": "Cine Star SAN JUAN DE LURIGANCHO",
+      "cadena": "Cine Star",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Cine Star SULLANA",
+      "cadena": "Cine Star",
+      "ciudad": "Sullana"
+    },
+    {
+      "nombre": "Cine Star SUR",
+      "cadena": "Cine Star",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Cine Star TARAPOTO",
+      "cadena": "Cine Star",
+      "ciudad": "Tarapoto"
+    },
+    {
+      "nombre": "Cine Star TINGO MARÍA",
+      "cadena": "Cine Star",
+      "ciudad": "Tingo María"
+    },
+    {
+      "nombre": "Cine Star UNI",
+      "cadena": "Cine Star",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Cinemark Asia",
+      "cadena": "Cinemark",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Cinemark Chorrillos Cenco Lima Sur",
+      "cadena": "Cinemark",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Cinemark Gamarra",
+      "cadena": "Cinemark",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Cinemark Jockey Plaza",
+      "cadena": "Cinemark",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Cinemark Mall Aventura Arequipa",
+      "cadena": "Cinemark",
+      "ciudad": "Arequipa"
+    },
+    {
+      "nombre": "Cinemark MallPlaza Angamos",
+      "cadena": "Cinemark",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Cinemark Mallplaza Bellavista",
+      "cadena": "Cinemark",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Cinemark Mallplaza Comas",
+      "cadena": "Cinemark",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Cinemark MallPlaza Huancayo",
+      "cadena": "Cinemark",
+      "ciudad": "Huancayo"
+    },
+    {
+      "nombre": "Cinemark MallPlaza Piura",
+      "cadena": "Cinemark",
+      "ciudad": "Piura"
+    },
+    {
+      "nombre": "Cinemark Mallplaza Trujillo",
+      "cadena": "Cinemark",
+      "ciudad": "Trujillo"
+    },
+    {
+      "nombre": "Cinemark Megaplaza",
+      "cadena": "Cinemark",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Cinemark Open Plaza Huanuco",
+      "cadena": "Cinemark",
+      "ciudad": "Huanuco"
+    },
+    {
+      "nombre": "Cinemark Outlet Arauco Arequipa",
+      "cadena": "Cinemark",
+      "ciudad": "Arequipa"
+    },
+    {
+      "nombre": "Cinemark San Miguel",
+      "cadena": "Cinemark",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Cinépolis Larcomar",
+      "cadena": "Cinépolis",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Cinépolis Plaza Norte",
+      "cadena": "Cinépolis",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Cinépolis Santa Anita",
+      "cadena": "Cinépolis",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Alcazar",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Arequipa Mall Plaza",
+      "cadena": "Cineplanet",
+      "ciudad": "Arequipa"
+    },
+    {
+      "nombre": "CP Arequipa Paseo Central",
+      "cadena": "Cineplanet",
+      "ciudad": "Arequipa"
+    },
+    {
+      "nombre": "CP Arequipa Real Plaza",
+      "cadena": "Cineplanet",
+      "ciudad": "Arequipa"
+    },
+    {
+      "nombre": "CP Brasil",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Cajamarca",
+      "cadena": "Cineplanet",
+      "ciudad": "Cajamarca"
+    },
+    {
+      "nombre": "CP Canto Grande",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Centro Civico",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Centro Jr. De La Unión",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Chiclayo Mall Aventura",
+      "cadena": "Cineplanet",
+      "ciudad": "Chiclayo"
+    },
+    {
+      "nombre": "CP Chiclayo Real Plaza",
+      "cadena": "Cineplanet",
+      "ciudad": "Chiclayo"
+    },
+    {
+      "nombre": "CP Comas",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Cusco",
+      "cadena": "Cineplanet",
+      "ciudad": "Cusco"
+    },
+    {
+      "nombre": "CP El Polo",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Guardia Civil",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Huancayo Real Plaza",
+      "cadena": "Cineplanet",
+      "ciudad": "Huancayo"
+    },
+    {
+      "nombre": "CP Huanuco Real Plaza",
+      "cadena": "Cineplanet",
+      "ciudad": "Huánuco"
+    },
+    {
+      "nombre": "CP Juliaca",
+      "cadena": "Cineplanet",
+      "ciudad": "Juliaca"
+    },
+    {
+      "nombre": "CP La Molina",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP La Molina Cenco",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Lurin",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Mall del Sur",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Norte",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Parque La Molina",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Piura",
+      "cadena": "Cineplanet",
+      "ciudad": "Piura"
+    },
+    {
+      "nombre": "CP Piura Real Plaza",
+      "cadena": "Cineplanet",
+      "ciudad": "Piura"
+    },
+    {
+      "nombre": "CP Plaza Santa Catalina",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Primavera",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Pro",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Pucallpa",
+      "cadena": "Cineplanet",
+      "ciudad": "Pucallpa"
+    },
+    {
+      "nombre": "CP Puno",
+      "cadena": "Cineplanet",
+      "ciudad": "Puno"
+    },
+    {
+      "nombre": "CP Puruchuco",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Risso",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Salaverry",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP San Borja",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP San Juan de Lurigancho",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP San Miguel",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Santa Clara",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Santa Clara Qhatu Plaza",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Tacna",
+      "cadena": "Cineplanet",
+      "ciudad": "Tacna"
+    },
+    {
+      "nombre": "CP Trujillo Centro",
+      "cadena": "Cineplanet",
+      "ciudad": "Trujillo"
+    },
+    {
+      "nombre": "CP Ventanilla",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Villa El Salvador",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "CP Villa María del Triunfo",
+      "cadena": "Cineplanet",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Movie Time BARRANCA",
+      "cadena": "Movie Time",
+      "ciudad": "Barranca"
+    },
+    {
+      "nombre": "Movie Time CAJAMARCA",
+      "cadena": "Movie Time",
+      "ciudad": "Cajamarca"
+    },
+    {
+      "nombre": "Movie Time CAÑETE",
+      "cadena": "Movie Time",
+      "ciudad": "Cañete"
+    },
+    {
+      "nombre": "Movie Time CHINCHA",
+      "cadena": "Movie Time",
+      "ciudad": "Chincha"
+    },
+    {
+      "nombre": "Movie Time CHORRILLOS",
+      "cadena": "Movie Time",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Movie Time HUARAL",
+      "cadena": "Movie Time",
+      "ciudad": "Huaral"
+    },
+    {
+      "nombre": "Movie Time JAEN",
+      "cadena": "Movie Time",
+      "ciudad": "Jaén"
+    },
+    {
+      "nombre": "Movie Time MOVIE TIME PREMIUM BASADRE",
+      "cadena": "Movie Time",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Movie Time MOVIETIME IQUITOS",
+      "cadena": "Movie Time",
+      "ciudad": "Iquitos"
+    },
+    {
+      "nombre": "Movie Time MOVIETIME PREMIUM IQUITOS",
+      "cadena": "Movie Time",
+      "ciudad": "Iquitos"
+    },
+    {
+      "nombre": "Movie Time PISCO",
+      "cadena": "Movie Time",
+      "ciudad": "Pisco"
+    },
+    {
+      "nombre": "Movie Time VES-UNICACHI",
+      "cadena": "Movie Time",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "Movie Time VES1",
+      "cadena": "Movie Time",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "UVK El Agustino",
+      "cadena": "UVK",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "UVK Ilo",
+      "cadena": "UVK",
+      "ciudad": "Ilo"
+    },
+    {
+      "nombre": "UVK Platino Panorama",
+      "cadena": "UVK",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "UVK San Martín",
+      "cadena": "UVK",
+      "ciudad": "Lima"
+    },
+    {
+      "nombre": "UVK Tumbes",
+      "cadena": "UVK",
+      "ciudad": "Tumbes"
+    }
+  ],
+  "error": null,
+  "obtenido_en": "2026-10-25T15:12:58.720372-05:00"
+}
