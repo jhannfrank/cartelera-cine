@@ -2,6 +2,11 @@ const UPDATE_ENDPOINT = "/api/actualizar";
 const STOP_ENDPOINT = "/api/detener";
 const UPDATE_POLL_MS = 2000;
 
+const isStaticHosting =
+  window.location.hostname.endsWith("github.io") ||
+  window.location.protocol === "file:" ||
+  window.location.hostname.includes("pages.dev");
+
 let updatePollTimer = null;
 
 function formatUpdateTimestamp(isoString) {
@@ -81,8 +86,15 @@ function setUpdateProgress(visible, porcentaje, iniciadoISO) {
 }
 
 async function pollUpdateStatus() {
+  if (isStaticHosting) {
+    return;
+  }
   try {
     const response = await fetch(UPDATE_ENDPOINT, { cache: "no-store" });
+    const cType = response.headers.get("content-type") || "";
+    if (!response.ok || !cType.includes("json")) {
+      return;
+    }
     const estado = await response.json();
 
     if (estado.en_progreso) {
@@ -124,7 +136,10 @@ async function pollUpdateStatus() {
     updatePollTimer = null;
     setUpdateButtonState(false);
     setUpdateProgress(false);
-    setUpdateStatusMessage(`Error consultando el estado: ${error.message}`, "error");
+    // Solo mostrar error si no es por hosting estático
+    if (!isStaticHosting) {
+      setUpdateStatusMessage(`Error consultando el estado: ${error.message}`, "error");
+    }
   }
 }
 
@@ -258,6 +273,7 @@ function aplicarUbicaciones(datos) {
 }
 
 async function cargarUbicaciones(forzar) {
+  if (isStaticHosting) return;
   try {
     const response = await fetch(`/api/ubicaciones${forzar ? "?forzar=1" : ""}`, { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -269,6 +285,23 @@ async function cargarUbicaciones(forzar) {
 }
 
 async function iniciarActualizacion() {
+  if (isStaticHosting) {
+    setUpdateButtonState(true);
+    setUpdateStatusMessage("Recargando cartelera más reciente desde GitHub...", "info");
+    try {
+      if (typeof loadData === "function") {
+        await loadData();
+      }
+      setUpdateButtonState(false);
+      setUpdateStatusMessage("Cartelera actualizada correctamente (sincronizada automáticamente vía GitHub Actions).", "success");
+      setTimeout(() => setUpdateStatusMessage("", "info"), 6000);
+    } catch (e) {
+      setUpdateButtonState(false);
+      setUpdateStatusMessage("No se pudo recargar la cartelera.", "error");
+    }
+    return;
+  }
+
   const provinciaSel = document.querySelector("#updateProvincia");
   const disponibilidadCheck = document.querySelector("#updateDisponibilidad");
   const diasInput = document.querySelector("#updateDias");
