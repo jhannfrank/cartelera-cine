@@ -9,6 +9,12 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, PROJECT_ROOT)
 
 from app.storage import guardar_json, leer_json
+from app.progreso import (
+    inicializar_monitoreo_cadenas,
+    registrar_progreso_cadena,
+    finalizar_monitoreo_cadenas,
+    ESTADO_PATH,
+)
 from server import _sanitizar_texto_parametro
 
 
@@ -51,6 +57,46 @@ class TestAuditoriaSeguridadYData(unittest.TestCase):
                 f.write("{ json truncado...")
             # Debe retornar None de manera segura sin crash
             self.assertIsNone(leer_json(bad_path))
+
+    def test_monitoreo_progreso_concurrente_thread_safe(self):
+        import concurrent.futures
+        cadenas_test = ["Cinépolis", "Cinemark", "Cine Star", "Movie Time", "UVK", "Cineplanet"]
+        inicializar_monitoreo_cadenas(cadenas_test, etapa="Prueba concurrente")
+        
+        def simular_cadena(nombre):
+            for i in range(1, 11):
+                registrar_progreso_cadena(
+                    nombre,
+                    f"Etapa {i}",
+                    completados=i,
+                    total=10,
+                    detalle=f"{i}/10 pasos",
+                    tiempo_s=0.1 * i,
+                    activo=(i < 10),
+                    ok=(True if i == 10 else None),
+                    peliculas=(20 if i == 10 else None),
+                    imprimir_consola=False,
+                )
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+            list(ex.map(simular_cadena, cadenas_test))
+
+        finalizar_monitoreo_cadenas(120)
+
+        # Verificar que el archivo generado sea JSON válido y consistente
+        self.assertTrue(os.path.exists(ESTADO_PATH))
+        with open(ESTADO_PATH, "r", encoding="utf-8") as f:
+            datos = json.load(f)
+
+        self.assertFalse(datos["en_progreso"])
+        self.assertEqual(datos["porcentaje"], 100.0)
+        self.assertIn("cadenas", datos)
+        self.assertEqual(len(datos["cadenas"]), 6)
+        for c_nom in cadenas_test:
+            self.assertIn(c_nom, datos["cadenas"])
+            self.assertTrue(datos["cadenas"][c_nom]["ok"])
+            self.assertEqual(datos["cadenas"][c_nom]["completados"], 10)
+            self.assertEqual(datos["cadenas"][c_nom]["peliculas"], 20)
 
 
 if __name__ == "__main__":

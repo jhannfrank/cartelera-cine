@@ -1,6 +1,6 @@
 const UPDATE_ENDPOINT = "/api/actualizar";
 const STOP_ENDPOINT = "/api/detener";
-const UPDATE_POLL_MS = 2000;
+const UPDATE_POLL_MS = 1500;
 
 const isStaticHosting =
   window.location.hostname.endsWith("github.io") ||
@@ -85,6 +85,73 @@ function setUpdateProgress(visible, porcentaje, iniciadoISO) {
   timeEl.textContent = "";
 }
 
+function renderChainsProgressGrid(cadenas) {
+  const grid = document.querySelector("#chainsProgressGrid");
+  if (!grid) return;
+
+  if (!cadenas || Object.keys(cadenas).length === 0) {
+    grid.hidden = true;
+    grid.innerHTML = "";
+    return;
+  }
+
+  grid.hidden = false;
+
+  const sanitize = (s) => (typeof escapeHTML === "function" ? escapeHTML(s) : (s || ""));
+
+  Object.entries(cadenas).forEach(([nombre, info]) => {
+    let card = grid.querySelector(`[data-chain="${sanitize(nombre)}"]`);
+    if (!card) {
+      card = document.createElement("div");
+      card.dataset.chain = nombre;
+      grid.appendChild(card);
+    }
+
+    let stateClass = "is-pending";
+    let icon = "⏳";
+    if (info.ok === true) {
+      stateClass = "is-done";
+      icon = "✓";
+    } else if (info.ok === false || info.error) {
+      stateClass = "is-error";
+      icon = "✗";
+    } else if (info.activo) {
+      stateClass = "is-active";
+      icon = "⏳";
+    }
+
+    const timeStr = info.tiempo_s != null && info.tiempo_s > 0 ? `${Number(info.tiempo_s).toFixed(1)}s` : "";
+    let pct = 0;
+    if (info.ok === true) {
+      pct = 100;
+    } else if (info.total && info.total > 0) {
+      pct = Math.min(100, Math.round(((info.completados || 0) / info.total) * 100));
+    }
+
+    let detailText = info.detalle || info.estado || "En espera";
+    if (info.ok === true && info.peliculas != null) {
+      detailText = `Listo: ${info.peliculas} pelis`;
+    }
+
+    card.className = `chain-progress-card ${stateClass}`;
+    card.innerHTML = `
+      <div class="chain-card-header">
+        <div class="chain-card-name-wrap">
+          <span class="chain-card-dot" aria-hidden="true"></span>
+          <span class="chain-card-name">${sanitize(nombre)}</span>
+        </div>
+        <span class="chain-card-time">${sanitize(timeStr)}</span>
+      </div>
+      <div class="chain-card-status-text" title="${sanitize(detailText)}">${sanitize(detailText)}</div>
+      <div class="chain-card-mini-track">
+        <div class="chain-card-mini-fill" style="width: ${pct}%"></div>
+      </div>
+    `;
+  });
+}
+
+let chainsAutoDismissTimer = null;
+
 async function pollUpdateStatus() {
   if (isStaticHosting) {
     return;
@@ -98,10 +165,17 @@ async function pollUpdateStatus() {
     const estado = await response.json();
 
     if (estado.en_progreso) {
+      if (chainsAutoDismissTimer) {
+        clearTimeout(chainsAutoDismissTimer);
+        chainsAutoDismissTimer = null;
+      }
       setUpdateButtonState(true);
       const etapa = estado.etapa || "Consultando cines, esto puede tardar unos minutos...";
       setUpdateStatusMessage(etapa, "info");
       setUpdateProgress(true, estado.porcentaje, estado.iniciado);
+      if (estado.cadenas) {
+        renderChainsProgressGrid(estado.cadenas);
+      }
       if (!updatePollTimer) {
         updatePollTimer = setInterval(pollUpdateStatus, UPDATE_POLL_MS);
       }
@@ -111,7 +185,19 @@ async function pollUpdateStatus() {
     clearInterval(updatePollTimer);
     updatePollTimer = null;
     setUpdateButtonState(false);
-    setUpdateProgress(false);
+
+    if (estado.cadenas) {
+      renderChainsProgressGrid(estado.cadenas);
+      // Mantener visible el monitor de cadenas 6 segundos para que el usuario aprecie el resumen de tiempos
+      if (chainsAutoDismissTimer) clearTimeout(chainsAutoDismissTimer);
+      chainsAutoDismissTimer = setTimeout(() => {
+        const grid = document.querySelector("#chainsProgressGrid");
+        if (grid) grid.hidden = true;
+        setUpdateProgress(false);
+      }, 7000);
+    } else {
+      setUpdateProgress(false);
+    }
 
     if (estado.cancelado) {
       setUpdateStatusMessage("Actualizacion detenida. Los datos anteriores no se modificaron.", "info");

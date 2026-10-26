@@ -1,4 +1,5 @@
 import argparse
+import time
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -18,7 +19,12 @@ from app.parser import (
     parsear_peliculas_uvk,
 )
 from app.storage import guardar_json
-from app.progreso import escribir_progreso, ahora_iso
+from app.progreso import (
+    inicializar_monitoreo_cadenas,
+    registrar_progreso_cadena,
+    finalizar_monitoreo_cadenas,
+    ahora_iso,
+)
 
 
 def parsear_argumentos():
@@ -59,13 +65,42 @@ def main():
 
     alcance_partes = [p for p in [ciudad, ", ".join(sedes) if sedes else None] if p]
     etiqueta_alcance = f" ({' / '.join(alcance_partes)})" if alcance_partes else ""
-    escribir_progreso(2, f"Iniciando escaneo nacional multacadena{etiqueta_alcance}", iniciado=inicio)
+    
+    nombres_cadenas = ["Cinépolis", "Cinemark", "Cine Star", "Movie Time", "UVK", "Cineplanet"]
+    inicializar_monitoreo_cadenas(
+        nombres_cadenas,
+        iniciado_iso=inicio,
+        etapa=f"Iniciando escaneo nacional multacadena{etiqueta_alcance}",
+    )
 
     def tarea_cineplanet():
+        t0 = time.perf_counter()
+        registrar_progreso_cadena("Cineplanet", "Iniciando conexión...", completados=0, total=3, detalle="Preparando sesión", activo=True, tiempo_s=0.0)
+
+        def cb_cp(*args, **kwargs):
+            elapsed = time.perf_counter() - t0
+            if len(args) >= 4:
+                etapa_tipo, completados, total, detalle = args[:4]
+            elif len(args) == 3:
+                etapa_tipo, completados, total = args
+                detalle = ""
+            elif len(args) == 2:
+                etapa_tipo = "seats"
+                completados, total = args
+                detalle = f"{completados}/{total}"
+            else:
+                return
+
+            if etapa_tipo == "cache":
+                registrar_progreso_cadena("Cineplanet", "Descargando cachés base", completados=completados, total=total, detalle=detalle, tiempo_s=elapsed)
+            else:
+                registrar_progreso_cadena("Cineplanet", "Consultando aforos de funciones", completados=completados, total=total, detalle=detalle, tiempo_s=elapsed)
+
         try:
             cineplanet_scraper = CineplanetScraper()
             cp_movies, cp_cinemas_index, cp_sessions_index, cp_availability_index = (
                 cineplanet_scraper.obtener_cartelera_data(
+                    progreso_callback=cb_cp,
                     ciudad=ciudad,
                     sedes=sedes,
                     incluir_disponibilidad=incluir_disponibilidad,
@@ -79,15 +114,48 @@ def main():
                 )
                 items.append(pelicula.model_dump())
             cineplanet_scraper.cerrar()
+            elapsed = time.perf_counter() - t0
+            registrar_progreso_cadena(
+                "Cineplanet",
+                "Completado",
+                completados=1,
+                total=1,
+                detalle=f"{len(items)} películas listas",
+                tiempo_s=elapsed,
+                activo=False,
+                ok=True,
+                peliculas=len(items),
+            )
             return items
         except Exception as e:
+            elapsed = time.perf_counter() - t0
             print(f"Aviso Cineplanet: {e}")
+            registrar_progreso_cadena("Cineplanet", "Error de extracción", completados=0, total=1, detalle=str(e), tiempo_s=elapsed, activo=False, ok=False, error=str(e))
             return []
 
     def tarea_cinemark():
+        t0 = time.perf_counter()
+        registrar_progreso_cadena("Cinemark", "Iniciando conexión BFF...", completados=0, total=1, detalle="Consultando cartelera", activo=True, tiempo_s=0.0)
+
+        def cb_cm(*args, **kwargs):
+            elapsed = time.perf_counter() - t0
+            if len(args) >= 3:
+                etapa_tipo, completados, total = args[:3]
+            elif len(args) == 2:
+                etapa_tipo = "theaters"
+                completados, total = args
+            else:
+                return
+
+            if etapa_tipo == "theaters":
+                registrar_progreso_cadena("Cinemark", "Consultando horarios por sede", completados=completados, total=total, detalle=f"{completados}/{total} sedes", tiempo_s=elapsed)
+            else:
+                registrar_progreso_cadena("Cinemark", "Enriqueciendo catálogo de películas", completados=completados, total=total, detalle=f"{completados}/{total} películas", tiempo_s=elapsed)
+
         try:
             cinemark_scraper = CinemarkScraper()
             cm_movies, cm_theaters_index, cm_showtimes_by_theater = cinemark_scraper.obtener_cartelera_data(
+                progreso_callback=cb_cm,
                 ciudad=ciudad,
                 sedes=sedes,
                 dias_maximos=dias_disponibilidad,
@@ -106,61 +174,161 @@ def main():
                 showtimes = showtimes_by_movie.get(corporate_id, [])
                 pelicula = parsear_pelicula_cinemark(movie, cm_theaters_index, showtimes)
                 items.append(pelicula.model_dump())
+            elapsed = time.perf_counter() - t0
+            registrar_progreso_cadena(
+                "Cinemark",
+                "Completado",
+                completados=1,
+                total=1,
+                detalle=f"{len(items)} películas listas",
+                tiempo_s=elapsed,
+                activo=False,
+                ok=True,
+                peliculas=len(items),
+            )
             return items
         except Exception as e:
+            elapsed = time.perf_counter() - t0
             print(f"Aviso Cinemark: {e}")
+            registrar_progreso_cadena("Cinemark", "Error de extracción", completados=0, total=1, detalle=str(e), tiempo_s=elapsed, activo=False, ok=False, error=str(e))
             return []
 
     def tarea_cinepolis():
+        t0 = time.perf_counter()
+        registrar_progreso_cadena("Cinépolis", "Consultando cartelera...", completados=0, total=1, detalle="Conectando a Cinépolis", activo=True, tiempo_s=0.0)
+
+        def cb_cpl(etapa_tipo, completados, total, detalle=""):
+            elapsed = time.perf_counter() - t0
+            registrar_progreso_cadena("Cinépolis", detalle or "Procesando", completados=completados, total=total, detalle=detalle, tiempo_s=elapsed)
+
         try:
             cpl = CinepolisScraper()
-            cinemas_data = cpl.obtener_cartelera_data(ciudad=ciudad, sedes=sedes)
+            cinemas_data = cpl.obtener_cartelera_data(progreso_callback=cb_cpl, ciudad=ciudad, sedes=sedes)
             pelis = parsear_peliculas_cinepolis(cinemas_data)
-            return [p.model_dump() for p in pelis]
+            items = [p.model_dump() for p in pelis]
+            elapsed = time.perf_counter() - t0
+            registrar_progreso_cadena(
+                "Cinépolis",
+                "Completado",
+                completados=1,
+                total=1,
+                detalle=f"{len(items)} películas listas",
+                tiempo_s=elapsed,
+                activo=False,
+                ok=True,
+                peliculas=len(items),
+            )
+            return items
         except Exception as e:
+            elapsed = time.perf_counter() - t0
             print(f"Aviso Cinépolis: {e}")
+            registrar_progreso_cadena("Cinépolis", "Error de extracción", completados=0, total=1, detalle=str(e), tiempo_s=elapsed, activo=False, ok=False, error=str(e))
             return []
 
     def tarea_cinestar():
+        t0 = time.perf_counter()
+        registrar_progreso_cadena("Cine Star", "Iniciando consulta TumiSoft...", completados=0, total=1, detalle="Listando sedes", activo=True, tiempo_s=0.0)
+
+        def cb_cs(completados, total, detalle=""):
+            elapsed = time.perf_counter() - t0
+            registrar_progreso_cadena("Cine Star", "Descargando sedes nacionales", completados=completados, total=total, detalle=detalle, tiempo_s=elapsed)
+
         try:
             cs = CineStarScraper()
-            data = cs.obtener_cartelera_data(ciudad=ciudad, sedes=sedes)
+            data = cs.obtener_cartelera_data(progreso_callback=cb_cs, ciudad=ciudad, sedes=sedes)
             pelis = parsear_peliculas_tumisoft(data, cadena_nombre="Cine Star", base_url=cs.BASE_URL)
-            return [p.model_dump() for p in pelis]
+            items = [p.model_dump() for p in pelis]
+            elapsed = time.perf_counter() - t0
+            registrar_progreso_cadena(
+                "Cine Star",
+                "Completado",
+                completados=1,
+                total=1,
+                detalle=f"{len(items)} películas listas",
+                tiempo_s=elapsed,
+                activo=False,
+                ok=True,
+                peliculas=len(items),
+            )
+            return items
         except Exception as e:
+            elapsed = time.perf_counter() - t0
             print(f"Aviso Cine Star: {e}")
+            registrar_progreso_cadena("Cine Star", "Error de extracción", completados=0, total=1, detalle=str(e), tiempo_s=elapsed, activo=False, ok=False, error=str(e))
             return []
 
     def tarea_movietime():
+        t0 = time.perf_counter()
+        registrar_progreso_cadena("Movie Time", "Iniciando consulta TumiSoft...", completados=0, total=1, detalle="Listando sedes", activo=True, tiempo_s=0.0)
+
+        def cb_mt(completados, total, detalle=""):
+            elapsed = time.perf_counter() - t0
+            registrar_progreso_cadena("Movie Time", "Descargando sedes nacionales", completados=completados, total=total, detalle=detalle, tiempo_s=elapsed)
+
         try:
             mt = MovieTimeScraper()
-            data = mt.obtener_cartelera_data(ciudad=ciudad, sedes=sedes)
+            data = mt.obtener_cartelera_data(progreso_callback=cb_mt, ciudad=ciudad, sedes=sedes)
             pelis = parsear_peliculas_tumisoft(data, cadena_nombre="Movie Time", base_url=mt.BASE_URL)
-            return [p.model_dump() for p in pelis]
+            items = [p.model_dump() for p in pelis]
+            elapsed = time.perf_counter() - t0
+            registrar_progreso_cadena(
+                "Movie Time",
+                "Completado",
+                completados=1,
+                total=1,
+                detalle=f"{len(items)} películas listas",
+                tiempo_s=elapsed,
+                activo=False,
+                ok=True,
+                peliculas=len(items),
+            )
+            return items
         except Exception as e:
+            elapsed = time.perf_counter() - t0
             print(f"Aviso Movie Time: {e}")
+            registrar_progreso_cadena("Movie Time", "Error de extracción", completados=0, total=1, detalle=str(e), tiempo_s=elapsed, activo=False, ok=False, error=str(e))
             return []
 
     def tarea_uvk():
+        t0 = time.perf_counter()
+        registrar_progreso_cadena("UVK", "Listando películas...", completados=0, total=1, detalle="Conectando a UVK", activo=True, tiempo_s=0.0)
+
+        def cb_uvk(completados, total, detalle=""):
+            elapsed = time.perf_counter() - t0
+            registrar_progreso_cadena("UVK", "Descargando cartelera de películas", completados=completados, total=total, detalle=detalle, tiempo_s=elapsed)
+
         try:
             uvk = UVKScraper()
-            resultados = uvk.obtener_cartelera_data(ciudad=ciudad, sedes=sedes)
+            resultados = uvk.obtener_cartelera_data(progreso_callback=cb_uvk, ciudad=ciudad, sedes=sedes)
             pelis = parsear_peliculas_uvk(resultados, ciudad_filtro=ciudad, sedes_filtro=sedes)
-            return [p.model_dump() for p in pelis]
+            items = [p.model_dump() for p in pelis]
+            elapsed = time.perf_counter() - t0
+            registrar_progreso_cadena(
+                "UVK",
+                "Completado",
+                completados=1,
+                total=1,
+                detalle=f"{len(items)} películas listas",
+                tiempo_s=elapsed,
+                activo=False,
+                ok=True,
+                peliculas=len(items),
+            )
+            return items
         except Exception as e:
+            elapsed = time.perf_counter() - t0
             print(f"Aviso UVK: {e}")
+            registrar_progreso_cadena("UVK", "Error de extracción", completados=0, total=1, detalle=str(e), tiempo_s=elapsed, activo=False, ok=False, error=str(e))
             return []
 
     tareas = [
-        ("Cineplanet", tarea_cineplanet),
-        ("Cinemark", tarea_cinemark),
         ("Cinépolis", tarea_cinepolis),
+        ("Cinemark", tarea_cinemark),
         ("Cine Star", tarea_cinestar),
         ("Movie Time", tarea_movietime),
         ("UVK", tarea_uvk),
+        ("Cineplanet", tarea_cineplanet),
     ]
-
-    escribir_progreso(15, f"Consultando 6 cadenas en paralelo...{etiqueta_alcance}", iniciado=inicio)
 
     total_tareas = len(tareas)
     completadas = 0
@@ -171,8 +339,6 @@ def main():
         for futuro in as_completed(futuros):
             nombre = futuros[futuro]
             completadas += 1
-            porcentaje = int(15 + (completadas / total_tareas) * 80)
-            escribir_progreso(porcentaje, f"Procesando resultados ({completadas}/{total_tareas}): {nombre}", iniciado=inicio)
             try:
                 res = futuro.result()
                 peliculas.extend(res)
@@ -204,12 +370,9 @@ def main():
                 peliculas_filtradas.append(p_nuevo)
         peliculas = peliculas_filtradas
 
-    escribir_progreso(98, "Guardando y unificando cartelera nacional", iniciado=inicio)
     peliculas.sort(key=lambda p: (p.get("titulo") or "").lower())
     guardar_json(peliculas, metadata={"estado_cadenas": estado_cadenas})
-    escribir_progreso(100, f"Actualización finalizada con éxito ({len(peliculas)} películas totales)", iniciado=inicio)
-
-    print(f"Scraping multacadena finalizado: {len(peliculas)} registros obtenidos.")
+    finalizar_monitoreo_cadenas(len(peliculas))
 
 
 if __name__ == "__main__":

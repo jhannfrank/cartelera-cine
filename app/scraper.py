@@ -134,8 +134,14 @@ class CineplanetScraper(BaseScraper):
         dias_disponibilidad=None,
     ):
         self._obtener_cookies_sesion("https://www.cineplanet.com.pe/")
+        if progreso_callback:
+            progreso_callback("cache", 1, 3, "Descargando catálogo de películas...")
         movies_payload = self._obtener_json("https://www.cineplanet.com.pe/api/v1-web/cache/moviescache")
+        if progreso_callback:
+            progreso_callback("cache", 2, 3, "Descargando sedes y cines...")
         cinemas_payload = self._obtener_json("https://www.cineplanet.com.pe/api/v1-web/cache/cinemascache")
+        if progreso_callback:
+            progreso_callback("cache", 3, 3, "Descargando sesiones y fechas...")
         sessions_payload = self._obtener_json("https://www.cineplanet.com.pe/api/v1-web/cache/sessioncache")
 
         movies = movies_payload.get("movies", [])
@@ -239,7 +245,7 @@ class CineplanetScraper(BaseScraper):
                     availability_index[combined_id] = disponibilidad
                 completados += 1
                 if progreso_callback and (completados % 20 == 0 or completados == total):
-                    progreso_callback(completados, total)
+                    progreso_callback("seats", completados, total, f"{completados}/{total} aforos consultados")
 
         obtenidos = len(availability_index)
         if total and obtenidos < total * 0.5:
@@ -458,6 +464,8 @@ class CinepolisScraper(BaseScraper):
                 progreso_callback(1, 1)
             return []
 
+        if progreso_callback:
+            progreso_callback("request", 0, 1, "Consultando cartelera de Lima...")
         res = self._post_json(self.ENDPOINT, {"claveCiudad": "lima-peru", "esVIP": False}, headers=self.HEADERS)
         data = res.get("d", {})
         cinemas = data.get("Cinemas", [])
@@ -471,7 +479,7 @@ class CinepolisScraper(BaseScraper):
             ]
 
         if progreso_callback:
-            progreso_callback(1, 1)
+            progreso_callback("done", 1, 1, f"{len(cinemas)} complejos obtenidos")
 
         return cinemas
 
@@ -614,9 +622,9 @@ class TumiSoftBaseScraper(BaseScraper):
             total = len(futuros)
             for fut in as_completed(futuros):
                 completados += 1
-                if progreso_callback:
-                    progreso_callback(completados, total)
                 cine = futuros[fut]
+                if progreso_callback:
+                    progreso_callback(completados, total, f"{completados}/{total} sedes ({cine.get('nombre', '')})")
                 try:
                     presentaciones = fut.result()
                     if presentaciones:
@@ -782,7 +790,8 @@ class UVKScraper(BaseScraper):
                 if res:
                     resultados.append(res)
                 if progreso_callback:
-                    progreso_callback(completados, total)
+                    m_title = res.get("movie_title") if res else ""
+                    progreso_callback(completados, total, f"{completados}/{total} películas ({m_title})")
 
         return resultados
 
