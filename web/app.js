@@ -7,6 +7,11 @@ const state = {
   tableSort: { key: "default", dir: 1 },
   tableFilterText: "",
   groupByFormato: false,
+  tablePage: 1,
+  tablePageSize: 50,
+  timelineLimit: 60,
+  cinematicLimit: 24,
+  cardsLimit: 30,
 };
 
 const VIEWS_SIN_AGRUPAR = new Set(["calendar", "heatmap", "cinematic"]);
@@ -747,6 +752,12 @@ function applyFilters() {
   state.ocultasSinFunciones = filteredMovies.length - conFunciones.length;
   state.filtered = sortMovies(conFunciones, filters.sortBy);
 
+  // Reiniciar paginación y límites de visualización ante nuevos filtros
+  state.tablePage = 1;
+  state.timelineLimit = 60;
+  state.cinematicLimit = 24;
+  state.cardsLimit = 30;
+
   renderActiveFilters(filters);
   renderResults();
 
@@ -1001,7 +1012,13 @@ function renderIdiomaBadge(idioma) {
   return `<span class="idioma-badge ${escapeHTML(cls)}">${escapeHTML(idioma)}</span>`;
 }
 
+let _cachedFilteredSource = null;
+let _cachedShowtimeEntries = null;
+
 function getShowtimeEntries(filteredMovies) {
+  if (_cachedFilteredSource === filteredMovies && _cachedShowtimeEntries) {
+    return _cachedShowtimeEntries;
+  }
   const entries = [];
 
   filteredMovies.forEach((movie) => {
@@ -1030,11 +1047,14 @@ function getShowtimeEntries(filteredMovies) {
           disponibilidad: fn.disponibilidad || null,
           disponibilidadLabel: getAvailabilityLabel(fn.disponibilidad),
           disponibilidadClass: getAvailabilityClass(fn.disponibilidad),
+          rawFunction: fn,
         });
       });
     });
   });
 
+  _cachedFilteredSource = filteredMovies;
+  _cachedShowtimeEntries = entries;
   return entries;
 }
 
@@ -1086,15 +1106,25 @@ function renderTimelineItem(entry) {
 }
 
 function renderTimelineResults(filteredMovies) {
-  const entries = sortEntriesByDateHourTitle(getShowtimeEntries(filteredMovies));
+  const allEntries = sortEntriesByDateHourTitle(getShowtimeEntries(filteredMovies));
 
-  if (!entries.length) {
-    els.results.innerHTML = `<p class="empty">No hay funciones para mostrar en timeline.</p>`;
+  if (!allEntries.length) {
+    els.results.innerHTML = `<p class="empty">No hay funciones para mostrar en horas.</p>`;
     return;
   }
 
+  if (!state.timelineLimit || state._timelineSource !== filteredMovies) {
+    state.timelineLimit = 60;
+    state._timelineSource = filteredMovies;
+  }
+
+  const visibleEntries = allEntries.slice(0, state.timelineLimit);
+  const total = allEntries.length;
+  const hasMore = visibleEntries.length < total;
+
+  let contentHtml = "";
   if (state.groupByFormato) {
-    els.results.innerHTML = agruparEntriesPorFormato(entries)
+    contentHtml = agruparEntriesPorFormato(visibleEntries)
       .map(
         ({ formato, items }) => `
           <div class="format-group">
@@ -1104,10 +1134,42 @@ function renderTimelineResults(filteredMovies) {
         `
       )
       .join("");
-    return;
+  } else {
+    contentHtml = visibleEntries.map(renderTimelineItem).join("");
   }
 
-  els.results.innerHTML = entries.map(renderTimelineItem).join("");
+  const loadMoreBtnHtml = hasMore ? `
+    <div class="timeline-load-more-wrap">
+      <button type="button" class="btn-load-more" id="timelineLoadMoreBtn">
+        ⏬ Mostrar más funciones (+60)
+        <span class="load-more-count">(Mostrando ${numberFormatter.format(visibleEntries.length)} de ${numberFormatter.format(total)})</span>
+      </button>
+      <button type="button" class="btn-load-all" id="timelineLoadAllBtn">
+        ⚡ Cargar todas (${numberFormatter.format(total)})
+      </button>
+    </div>
+  ` : (total > 60 ? `
+    <div class="timeline-load-more-wrap">
+      <span class="load-more-end">✓ Has visto todas las ${numberFormatter.format(total)} funciones</span>
+    </div>
+  ` : "");
+
+  els.results.innerHTML = contentHtml + loadMoreBtnHtml;
+
+  const moreBtn = els.results.querySelector("#timelineLoadMoreBtn");
+  if (moreBtn) {
+    moreBtn.addEventListener("click", () => {
+      state.timelineLimit += 60;
+      renderTimelineResults(filteredMovies);
+    });
+  }
+  const allBtn = els.results.querySelector("#timelineLoadAllBtn");
+  if (allBtn) {
+    allBtn.addEventListener("click", () => {
+      state.timelineLimit = total;
+      renderTimelineResults(filteredMovies);
+    });
+  }
 }
 
 const TABLE_COLUMNS = [
@@ -1194,22 +1256,12 @@ function renderTableRow(entry) {
 }
 
 function updateTableFilterOnly() {
-  const tbody = els.results.querySelector(".showtimes-table tbody");
-  const countBadge = els.results.querySelector(".table-count-badge");
-  if (!tbody) return;
-
-  const q = (state.tableFilterText || "").toLowerCase().trim();
-  const rows = tbody.querySelectorAll("tr:not(.table-group-row)");
-  let visibleCount = 0;
-  rows.forEach((row) => {
-    const text = row.textContent.toLowerCase();
-    const match = !q || text.includes(q);
-    row.style.display = match ? "" : "none";
-    if (match) visibleCount++;
-  });
-
-  if (countBadge) {
-    countBadge.textContent = `${numberFormatter.format(visibleCount)} funciones`;
+  state.tablePage = 1;
+  renderTableResults(state.filtered);
+  const input = els.results.querySelector("#tableQuickSearch");
+  if (input) {
+    input.focus();
+    input.selectionStart = input.selectionEnd = input.value.length;
   }
 }
 
@@ -1250,10 +1302,21 @@ function renderTableResults(filteredMovies) {
       })
     : entries;
 
+  // 3. Paginación inteligente (reduce 11,990 filas pesadas a lotes instantáneos de 50)
+  state.tablePageSize = state.tablePageSize || 50;
+  const totalEntries = matchingEntries.length;
+  const totalPages = Math.max(1, Math.ceil(totalEntries / state.tablePageSize));
+  if (!state.tablePage || state.tablePage < 1) state.tablePage = 1;
+  if (state.tablePage > totalPages) state.tablePage = totalPages;
+
+  const startIndex = (state.tablePage - 1) * state.tablePageSize;
+  const endIndex = Math.min(startIndex + state.tablePageSize, totalEntries);
+  const pagedEntries = matchingEntries.slice(startIndex, endIndex);
+
   let rowsHtml = "";
   if (agrupar) {
     let formatoActual = null;
-    matchingEntries.forEach((entry) => {
+    pagedEntries.forEach((entry) => {
       if (entry.formato !== formatoActual) {
         formatoActual = entry.formato;
         const cantidad = matchingEntries.filter((e) => e.formato === formatoActual).length;
@@ -1262,7 +1325,7 @@ function renderTableResults(filteredMovies) {
       rowsHtml += renderTableRow(entry);
     });
   } else {
-    rowsHtml = matchingEntries.map(renderTableRow).join("");
+    rowsHtml = pagedEntries.map(renderTableRow).join("");
   }
 
   const headerCells = TABLE_COLUMNS
@@ -1275,6 +1338,31 @@ function renderTableResults(filteredMovies) {
 
   const currentSelectVal = `${sortKey || "default"}_${sortDir || 1}`;
   const isSorted = sortKey && sortKey !== "default";
+
+  const renderPagination = (loc) => `
+    <div class="table-pagination" data-pagination-loc="${loc}">
+      <div class="table-pagination-info">
+        Mostrando <strong>${totalEntries > 0 ? startIndex + 1 : 0}–${endIndex}</strong> de <strong>${numberFormatter.format(totalEntries)}</strong> funciones
+      </div>
+      <div class="table-pagination-nav">
+        <button type="button" class="btn-page-step" data-page-action="first" ${state.tablePage === 1 ? "disabled" : ""} title="Primera página">«</button>
+        <button type="button" class="btn-page-step" data-page-action="prev" ${state.tablePage === 1 ? "disabled" : ""} title="Página anterior">‹ Ant</button>
+        <span class="table-page-current">Pág. <strong>${state.tablePage}</strong> de ${totalPages}</span>
+        <button type="button" class="btn-page-step" data-page-action="next" ${state.tablePage === totalPages ? "disabled" : ""} title="Página siguiente">Sig ›</button>
+        <button type="button" class="btn-page-step" data-page-action="last" ${state.tablePage === totalPages ? "disabled" : ""} title="Última página">»</button>
+      </div>
+      <div class="table-pagination-size">
+        <label>
+          <span>Mostrar:</span>
+          <select class="table-page-select" data-page-action="size" title="Funciones por página">
+            <option value="50" ${state.tablePageSize === 50 ? "selected" : ""}>50 por pág</option>
+            <option value="100" ${state.tablePageSize === 100 ? "selected" : ""}>100 por pág</option>
+            <option value="250" ${state.tablePageSize === 250 ? "selected" : ""}>250 por pág</option>
+          </select>
+        </label>
+      </div>
+    </div>
+  `;
 
   els.results.innerHTML = `
     <div class="table-toolbar">
@@ -1329,9 +1417,11 @@ function renderTableResults(filteredMovies) {
       </div>
     </div>
 
+    ${renderPagination("top")}
+
     ${window.innerWidth < 640 ? `
       <div class="mobile-table-card-list">
-        ${matchingEntries.map((e) => {
+        ${pagedEntries.map((e) => {
           const cadClass = (e.cadena || "").toLowerCase().replace(/[^a-z0-9]/g, "");
           const fmtKey = (e.formato || "ND").toLowerCase().replace(/[^a-z0-9]/g, "");
           const dispHtml = e.disponibilidad
@@ -1373,6 +1463,8 @@ function renderTableResults(filteredMovies) {
         </table>
       </div>
     `}
+
+    ${totalPages > 1 ? renderPagination("bottom") : ""}
   `;
 }
 
@@ -1661,7 +1753,13 @@ function fixPosterUrl(url, chain) {
   return cleanUrl;
 }
 
+let _cachedCinematicSource = null;
+let _cachedCinematicUnified = null;
+
 function unifyMoviesForCinematic(movies) {
+  if (_cachedCinematicSource === movies && _cachedCinematicUnified) {
+    return _cachedCinematicUnified;
+  }
   const unifiedMap = new Map();
 
   movies.forEach((m) => {
@@ -1706,7 +1804,10 @@ function unifyMoviesForCinematic(movies) {
     }
   });
 
-  return Array.from(unifiedMap.values());
+  const result = Array.from(unifiedMap.values());
+  _cachedCinematicSource = movies;
+  _cachedCinematicUnified = result;
+  return result;
 }
 
 function renderCinematicResults(movies) {
@@ -1716,7 +1817,16 @@ function renderCinematicResults(movies) {
   const unifiedMovies = unifyMoviesForCinematic(movies);
   state.unifiedMovies = unifiedMovies;
 
-  unifiedMovies.forEach((movie, movieIdx) => {
+  if (!state.cinematicLimit || state._cinematicSource !== movies) {
+    state.cinematicLimit = 24;
+    state._cinematicSource = movies;
+  }
+
+  const visibleMovies = unifiedMovies.slice(0, state.cinematicLimit);
+  const total = unifiedMovies.length;
+  const hasMore = visibleMovies.length < total;
+
+  visibleMovies.forEach((movie, movieIdx) => {
     const card = document.createElement("article");
     card.className = "cinematic-card";
     card.style.setProperty("--delay", `${movieIdx * 35}ms`);
@@ -1945,6 +2055,35 @@ function renderCinematicResults(movies) {
 
   els.results.innerHTML = "";
   els.results.appendChild(container);
+
+  if (hasMore) {
+    const loadWrap = document.createElement("div");
+    loadWrap.className = "cinematic-load-more-wrap";
+    loadWrap.innerHTML = `
+      <button type="button" class="btn-load-more" id="cinematicLoadMoreBtn">
+        🎬 Cargar más afiches (+24)
+        <span class="load-more-count">(Mostrando ${numberFormatter.format(visibleMovies.length)} de ${numberFormatter.format(total)})</span>
+      </button>
+      <button type="button" class="btn-load-all" id="cinematicLoadAllBtn">
+        ⚡ Cargar todas (${numberFormatter.format(total)})
+      </button>
+    `;
+    els.results.appendChild(loadWrap);
+
+    loadWrap.querySelector("#cinematicLoadMoreBtn")?.addEventListener("click", () => {
+      state.cinematicLimit += 24;
+      renderCinematicResults(movies);
+    });
+    loadWrap.querySelector("#cinematicLoadAllBtn")?.addEventListener("click", () => {
+      state.cinematicLimit = total;
+      renderCinematicResults(movies);
+    });
+  } else if (total > 24) {
+    const endWrap = document.createElement("div");
+    endWrap.className = "cinematic-load-more-wrap";
+    endWrap.innerHTML = `<span class="load-more-end">✓ Has visto todas las ${numberFormatter.format(total)} películas</span>`;
+    els.results.appendChild(endWrap);
+  }
 }
 
 const numberFormatter = new Intl.NumberFormat("es-PE");
@@ -2063,8 +2202,16 @@ function renderResults() {
     return;
   }
 
+  if (!state.cardsLimit || state._cardsSource !== filtered) {
+    state.cardsLimit = 30;
+    state._cardsSource = filtered;
+  }
+  const visibleCards = filtered.slice(0, state.cardsLimit);
+  const totalCards = filtered.length;
+  const hasMoreCards = visibleCards.length < totalCards;
+
   const fragment = document.createDocumentFragment();
-  filtered.forEach((movie, index) => {
+  visibleCards.forEach((movie, index) => {
     const card = els.movieTemplate.content.firstElementChild.cloneNode(true);
     card.style.setProperty("--delay", `${index * 40}ms`);
 
@@ -2179,6 +2326,35 @@ function renderResults() {
 
   els.results.innerHTML = "";
   els.results.appendChild(fragment);
+
+  if (hasMoreCards) {
+    const loadWrap = document.createElement("div");
+    loadWrap.className = "cards-load-more-wrap";
+    loadWrap.innerHTML = `
+      <button type="button" class="btn-load-more" id="cardsLoadMoreBtn">
+        📱 Mostrar más películas (+30)
+        <span class="load-more-count">(Mostrando ${numberFormatter.format(visibleCards.length)} de ${numberFormatter.format(totalCards)})</span>
+      </button>
+      <button type="button" class="btn-load-all" id="cardsLoadAllBtn">
+        ⚡ Cargar todas (${numberFormatter.format(totalCards)})
+      </button>
+    `;
+    els.results.appendChild(loadWrap);
+
+    loadWrap.querySelector("#cardsLoadMoreBtn")?.addEventListener("click", () => {
+      state.cardsLimit += 30;
+      renderResults();
+    });
+    loadWrap.querySelector("#cardsLoadAllBtn")?.addEventListener("click", () => {
+      state.cardsLimit = totalCards;
+      renderResults();
+    });
+  } else if (totalCards > 30) {
+    const endWrap = document.createElement("div");
+    endWrap.className = "cards-load-more-wrap";
+    endWrap.innerHTML = `<span class="load-more-end">✓ Has visto todas las ${numberFormatter.format(totalCards)} películas</span>`;
+    els.results.appendChild(endWrap);
+  }
 }
 
 function clearFilters() {
@@ -3872,11 +4048,32 @@ function wireEvents() {
     saveUserPreferences();
     applyFilters();
   });
-  els.viewMode.addEventListener("change", () => {
-    state.viewMode = els.viewMode.value || "cinematic";
-    updateSegmentedViewBar(state.viewMode);
+  function switchViewMode(targetView) {
+    if (!targetView || !els.viewMode) return;
+    if (targetView === state.viewMode) return;
+
+    els.viewMode.value = targetView;
+    state.viewMode = targetView;
+    updateSegmentedViewBar(targetView);
     saveUserPreferences();
-    renderResults();
+
+    // Feedback táctil instantáneo (0ms) y desacople del renderizado para evitar bloqueos
+    if (els.results) {
+      els.results.classList.add("view-switching");
+    }
+
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        renderResults();
+        if (els.results) {
+          els.results.classList.remove("view-switching");
+        }
+      }, 16);
+    });
+  }
+
+  els.viewMode.addEventListener("change", () => {
+    switchViewMode(els.viewMode.value || "cinematic");
   });
 
   const segBar = document.querySelector("#viewSegmentedBar");
@@ -3885,12 +4082,8 @@ function wireEvents() {
       const btn = e.target.closest(".view-segmented-btn");
       if (!btn) return;
       const targetView = btn.dataset.view;
-      if (targetView && els.viewMode) {
-        els.viewMode.value = targetView;
-        state.viewMode = targetView;
-        updateSegmentedViewBar(targetView);
-        saveUserPreferences();
-        renderResults();
+      if (targetView) {
+        switchViewMode(targetView);
       }
     });
   }
@@ -3899,12 +4092,8 @@ function wireEvents() {
   if (extraSelect) {
     extraSelect.addEventListener("change", () => {
       const targetView = extraSelect.value;
-      if (targetView && els.viewMode) {
-        els.viewMode.value = targetView;
-        state.viewMode = targetView;
-        updateSegmentedViewBar(targetView);
-        saveUserPreferences();
-        renderResults();
+      if (targetView) {
+        switchViewMode(targetView);
       }
     });
   }
@@ -4047,7 +4236,8 @@ function wireEvents() {
       } else {
         state.tableSort = { key, dir: key === "disponibilidad" ? -1 : 1 };
       }
-      renderResults();
+      state.tablePage = 1;
+      renderTableResults(state.filtered);
       return;
     }
 
@@ -4059,14 +4249,32 @@ function wireEvents() {
       } else {
         state.tableSort = { key, dir: key === "disponibilidad" ? -1 : 1 };
       }
-      renderResults();
+      state.tablePage = 1;
+      renderTableResults(state.filtered);
       return;
     }
 
     if (event.target.closest("#clearTableSortBtn")) {
       state.tableSort = { key: "default", dir: 1 };
       state.tableFilterText = "";
-      renderResults();
+      state.tablePage = 1;
+      renderTableResults(state.filtered);
+      return;
+    }
+
+    const pageBtn = event.target.closest(".btn-page-step[data-page-action]");
+    if (pageBtn) {
+      const action = pageBtn.dataset.pageAction;
+      const entries = getShowtimeEntries(state.filtered);
+      const q = (state.tableFilterText || "").toLowerCase().trim();
+      const count = q ? entries.filter((e) => `${e.titulo} ${e.sede} ${e.ciudad} ${e.cadena} ${e.formato} ${e.idioma} ${e.horaLabel} ${e.diaLabel} ${e.disponibilidadLabel || ""}`.toLowerCase().includes(q)).length : entries.length;
+      const totalPages = Math.max(1, Math.ceil(count / (state.tablePageSize || 50)));
+
+      if (action === "first") state.tablePage = 1;
+      else if (action === "prev") state.tablePage = Math.max(1, state.tablePage - 1);
+      else if (action === "next") state.tablePage = Math.min(totalPages, state.tablePage + 1);
+      else if (action === "last") state.tablePage = totalPages;
+      renderTableResults(state.filtered);
       return;
     }
   });
@@ -4094,7 +4302,16 @@ function wireEvents() {
       const key = parts[0];
       const dir = parseInt(parts[1], 10) || 1;
       state.tableSort = { key, dir };
-      renderResults();
+      state.tablePage = 1;
+      renderTableResults(state.filtered);
+      return;
+    }
+
+    if (event.target && event.target.dataset.pageAction === "size") {
+      state.tablePageSize = parseInt(event.target.value, 10) || 50;
+      state.tablePage = 1;
+      renderTableResults(state.filtered);
+      return;
     }
   });
 
