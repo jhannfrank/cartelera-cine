@@ -417,6 +417,24 @@ body {
   box-shadow: 0 4px 12px rgba(245, 158, 11, 0.5);
 }
 
+.hero-scope-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(47, 86, 115, 0.15);
+  border: 1px solid rgba(47, 86, 115, 0.3);
+  font-size: 0.74rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.hero-scope-cadenas {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
 .btn-primary-action {
   display: inline-flex;
   align-items: center;
@@ -1561,6 +1579,58 @@ body {
   color: var(--muted);
 }
 
+.update-provincia-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.update-provincia-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.provincia-sedes-badge {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  font-weight: 800;
+}
+
+.update-provincia-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.77rem;
+  line-height: 1.4;
+  flex-wrap: wrap;
+}
+
+.update-provincia-row.is-absent {
+  color: var(--muted);
+  font-size: 0.73rem;
+}
+
+.provincia-tag {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.provincia-tag.tag-present {
+  color: #22c55e;
+}
+
+.provincia-tag.tag-absent {
+  color: #94a3b8;
+}
+
 /* Contenedor de Sedes Específicas */
 .update-sedes-container {
   border: 1px solid var(--border);
@@ -2045,6 +2115,12 @@ button.btn-danger {
   background: color-mix(in srgb, var(--surface-strong) 93%, #22c55e);
 }
 
+.chain-progress-card.is-not-present {
+  border-color: rgba(148, 163, 184, 0.22);
+  background: color-mix(in srgb, var(--surface-strong) 70%, transparent);
+  opacity: 0.75;
+}
+
 .chain-progress-card.is-error {
   border-color: rgba(239, 68, 68, 0.45);
 }
@@ -2080,6 +2156,25 @@ button.btn-danger {
 .chain-progress-card.is-done .chain-card-dot {
   background: #22c55e;
   box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+}
+
+.chain-progress-card.is-not-present .chain-card-dot {
+  background: #94a3b8;
+  opacity: 0.6;
+}
+
+.chain-progress-card.is-not-present .chain-card-name {
+  color: var(--muted);
+}
+
+.chain-progress-card.is-not-present .chain-card-time {
+  color: var(--muted);
+  font-style: italic;
+  font-size: 0.66rem;
+}
+
+.chain-progress-card.is-not-present .chain-card-status-text {
+  color: var(--muted);
 }
 
 .chain-card-name {
@@ -2124,6 +2219,11 @@ button.btn-danger {
 
 .chain-progress-card.is-done .chain-card-mini-fill {
   background: #22c55e;
+}
+
+.chain-progress-card.is-not-present .chain-card-mini-fill {
+  background: #94a3b8;
+  opacity: 0.35;
 }
 
 @media (max-width: 640px) {
@@ -4684,6 +4784,19 @@ body.capturing-report-modal .report-modal-body {
   color: var(--on-primary);
   border-color: var(--primary);
   box-shadow: 0 2px 8px rgba(47, 86, 115, 0.35);
+}
+
+.chain-select-pill.is-unavailable {
+  opacity: 0.42;
+  filter: grayscale(0.85);
+  border-style: dashed;
+  cursor: not-allowed;
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+}
+
+.chain-select-pill.is-unavailable:hover {
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  border-color: var(--border);
 }
 
 .custom-checklist-dropdown {

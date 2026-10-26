@@ -109,7 +109,10 @@ function renderChainsProgressGrid(cadenas) {
 
     let stateClass = "is-pending";
     let icon = "⏳";
-    if (info.ok === true) {
+    if (info.sin_presencia) {
+      stateClass = "is-not-present";
+      icon = "📍";
+    } else if (info.ok === true) {
       stateClass = "is-done";
       icon = "✓";
     } else if (info.ok === false || info.error) {
@@ -120,16 +123,26 @@ function renderChainsProgressGrid(cadenas) {
       icon = "⏳";
     }
 
-    const timeStr = info.tiempo_s != null && info.tiempo_s > 0 ? `${Number(info.tiempo_s).toFixed(1)}s` : "";
+    let timeStr = "";
+    if (info.sin_presencia) {
+      timeStr = "omitido";
+    } else if (info.tiempo_s != null && info.tiempo_s > 0) {
+      timeStr = `${Number(info.tiempo_s).toFixed(1)}s`;
+    }
+
     let pct = 0;
-    if (info.ok === true) {
+    if (info.sin_presencia) {
+      pct = 0;
+    } else if (info.ok === true) {
       pct = 100;
     } else if (info.total && info.total > 0) {
       pct = Math.min(100, Math.round(((info.completados || 0) / info.total) * 100));
     }
 
     let detailText = info.detalle || info.estado || "En espera";
-    if (info.ok === true && info.peliculas != null) {
+    if (info.sin_presencia) {
+      detailText = info.detalle || "Sin sedes en esta provincia";
+    } else if (info.ok === true && info.peliculas != null) {
       detailText = `Listo: ${info.peliculas} pelis`;
     }
 
@@ -255,23 +268,53 @@ function renderSedesFiltradas() {
     });
   }
 
-  // 2. Actualizar banner explicativo
+  // 2. Actualizar banner explicativo y cobertura de cadenas
   if (provinciaInfo) {
     if (provincia) {
       provinciaInfo.className = "update-provincia-banner is-active";
+      const todasCadenas = ["Cineplanet", "Cinemark", "Cinépolis", "Cine Star", "Movie Time", "UVK"];
+      const cadenasEnProvincia = Array.from(new Set(sedesFiltradas.map((s) => s.cadena).filter(Boolean))).sort();
+      const cadenasAusentes = todasCadenas.filter((c) => !cadenasEnProvincia.includes(c));
+
+      const sedesPorCadena = {};
+      sedesFiltradas.forEach((s) => {
+        if (s.cadena) sedesPorCadena[s.cadena] = (sedesPorCadena[s.cadena] || 0) + 1;
+      });
+
+      const presentesTexto = cadenasEnProvincia.length > 0
+        ? cadenasEnProvincia.map((c) => `${c} (${sedesPorCadena[c]} ${sedesPorCadena[c] === 1 ? 'sede' : 'sedes'})`).join(", ")
+        : "Ninguna sede detectada";
+
+      let ausentesHtml = "";
+      if (cadenasAusentes.length > 0) {
+        ausentesHtml = `
+          <div class="update-provincia-row is-absent">
+            <span class="provincia-tag tag-absent">📍 Sin presencia:</span>
+            <span>${esc(cadenasAusentes.join(", "))} <em>(se omitirán automáticamente)</em></span>
+          </div>
+        `;
+      }
+
       provinciaInfo.innerHTML = `
-        <span class="banner-icon">💡</span>
-        <div>
-          <strong>Alcance configurado: ${esc(provincia)}</strong>
-          <p>Se sincronizarán automáticamente todas las <strong>${sedesFiltradas.length} sedes</strong> de esta provincia en las 6 cadenas sin requerir selección manual. Usa el selector inferior solo si deseas limitar la extracción a sedes específicas.</p>
+        <span class="banner-icon">📍</span>
+        <div class="update-provincia-content">
+          <div class="update-provincia-title">
+            <strong>Provincia: ${esc(provincia)}</strong>
+            <span class="provincia-sedes-badge">${sedesFiltradas.length} sedes</span>
+          </div>
+          <div class="update-provincia-row is-present">
+            <span class="provincia-tag tag-present">✓ Cines disponibles:</span>
+            <strong>${esc(presentesTexto)}</strong>
+          </div>
+          ${ausentesHtml}
         </div>
       `;
     } else {
       provinciaInfo.className = "update-provincia-banner is-national";
       provinciaInfo.innerHTML = `
         <span class="banner-icon">🌎</span>
-        <div>
-          <strong>Alcance Nacional:</strong> Se extraerán todas las sedes del país (${(ubicacionesCache.sedes || []).length} sedes en ${(ubicacionesCache.ciudades || []).length} ciudades).
+        <div class="update-provincia-content">
+          <strong>Alcance Nacional:</strong> Se consultarán las 6 cadenas en todo el país (${(ubicacionesCache.sedes || []).length} sedes en ${(ubicacionesCache.ciudades || []).length} ciudades).
         </div>
       `;
     }

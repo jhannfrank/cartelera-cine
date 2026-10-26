@@ -105,6 +105,7 @@ def registrar_progreso_cadena(
     ok=None,
     error=None,
     peliculas=None,
+    sin_presencia=False,
     imprimir_consola=True,
 ):
     """
@@ -128,14 +129,20 @@ def registrar_progreso_cadena(
             cad["error"] = error
         if peliculas is not None:
             cad["peliculas"] = peliculas
+        if sin_presencia:
+            cad["sin_presencia"] = True
+            cad["activo"] = False
+            cad["ok"] = True
+            if peliculas is None:
+                cad["peliculas"] = 0
 
         # Cálculo de porcentaje ponderado global:
         # 10% preparación + 85% progreso de cadenas + 5% unificación final
         if cadenas:
             sum_pct = 0.0
             for c_info in cadenas.values():
-                if c_info.get("ok") is not None:
-                    sum_pct += 1.0  # Si terminó (éxito o error), 100% de esa cadena
+                if c_info.get("sin_presencia") or c_info.get("ok") is not None:
+                    sum_pct += 1.0  # Si terminó (éxito, error u omitido por sin presencia), 100% de esa cadena
                 else:
                     t = max(1, c_info.get("total", 1))
                     comp = min(t, max(0, c_info.get("completados", 0)))
@@ -148,17 +155,19 @@ def registrar_progreso_cadena(
         activas = [nom for nom, c in cadenas.items() if c.get("activo")]
         if activas:
             _estado_global["etapa"] = f"Extrayendo: {', '.join(activas[:3])}" + ("..." if len(activas) > 3 else "")
-        elif all(c.get("ok") is not None for c in cadenas.values()):
-            _estado_global["etapa"] = "Unificando catálogo nacional..."
+        elif all(c.get("ok") is not None or c.get("sin_presencia") for c in cadenas.values()):
+            _estado_global["etapa"] = "Unificando cartelera regional..."
 
-        # Guardar en disco (forzar si finalizó o hubo error)
-        hitos = (ok is not None) or (completados == total) or (completados == 1)
+        # Guardar en disco (forzar si finalizó, omitió o hubo error)
+        hitos = (ok is not None) or sin_presencia or (completados == total) or (completados == 1)
         _guardar_estado_atomico(forzar=hitos)
 
     if imprimir_consola and hitos:
         tiempo_str = f" [{tiempo_s:.1f}s]" if tiempo_s is not None else ""
         hora_str = datetime.now().strftime("%H:%M:%S")
-        if ok is True:
+        if sin_presencia:
+            print(f"[{hora_str}] 📍 [{nombre_cadena}] {etapa} ({detalle or 'Sin presencia territorial'})", flush=True)
+        elif ok is True:
             pelis_str = f" ({peliculas} pelis)" if peliculas is not None else ""
             print(f"[{hora_str}] ✅ [{nombre_cadena}] {etapa}{pelis_str}{tiempo_str}", flush=True)
         elif ok is False or error:

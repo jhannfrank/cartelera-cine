@@ -19,6 +19,7 @@ from app.parser import (
     parsear_peliculas_uvk,
 )
 from app.storage import guardar_json
+from app.cobertura import analizar_presencia_territorial
 from app.progreso import (
     inicializar_monitoreo_cadenas,
     registrar_progreso_cadena,
@@ -66,12 +67,40 @@ def main():
     alcance_partes = [p for p in [ciudad, ", ".join(sedes) if sedes else None] if p]
     etiqueta_alcance = f" ({' / '.join(alcance_partes)})" if alcance_partes else ""
     
+    cobertura = analizar_presencia_territorial(ciudad=ciudad, sedes_filtro=sedes)
+    cadenas_activas = cobertura.get("cadenas_activas", set())
+    cadenas_omitidas = cobertura.get("cadenas_omitidas", set())
+
     nombres_cadenas = ["Cinépolis", "Cinemark", "Cine Star", "Movie Time", "UVK", "Cineplanet"]
     inicializar_monitoreo_cadenas(
         nombres_cadenas,
         iniciado_iso=inicio,
-        etapa=f"Iniciando escaneo nacional multacadena{etiqueta_alcance}",
+        etapa=f"Iniciando escaneo multacadena{etiqueta_alcance}",
     )
+
+    estado_cadenas = {}
+
+    # Marcar de inmediato las cadenas que no tienen presencia física en la zona solicitada
+    for omitida in cadenas_omitidas:
+        motivo = cobertura.get("detalle_omision", {}).get(omitida, f"Sin presencia territorial en {ciudad or 'esta selección'}")
+        registrar_progreso_cadena(
+            omitida,
+            "Sin presencia en esta provincia",
+            completados=1,
+            total=1,
+            detalle=motivo,
+            tiempo_s=0.0,
+            activo=False,
+            ok=True,
+            sin_presencia=True,
+            peliculas=0,
+        )
+        estado_cadenas[omitida] = {
+            "ok": True,
+            "sin_presencia": True,
+            "motivo": motivo,
+            "peliculas": 0,
+        }
 
     def tarea_cineplanet():
         t0 = time.perf_counter()
@@ -321,7 +350,7 @@ def main():
             registrar_progreso_cadena("UVK", "Error de extracción", completados=0, total=1, detalle=str(e), tiempo_s=elapsed, activo=False, ok=False, error=str(e))
             return []
 
-    tareas = [
+    todas_las_tareas = [
         ("Cinépolis", tarea_cinepolis),
         ("Cinemark", tarea_cinemark),
         ("Cine Star", tarea_cinestar),
@@ -330,22 +359,23 @@ def main():
         ("Cineplanet", tarea_cineplanet),
     ]
 
-    total_tareas = len(tareas)
+    tareas_a_ejecutar = [t for t in todas_las_tareas if t[0] in cadenas_activas]
+    total_tareas = len(tareas_a_ejecutar)
     completadas = 0
-    estado_cadenas = {}
 
-    with ThreadPoolExecutor(max_workers=6) as executor:
-        futuros = {executor.submit(func): nombre for nombre, func in tareas}
-        for futuro in as_completed(futuros):
-            nombre = futuros[futuro]
-            completadas += 1
-            try:
-                res = futuro.result()
-                peliculas.extend(res)
-                estado_cadenas[nombre] = {"ok": True, "peliculas": len(res)}
-            except Exception as e:
-                print(f"Error procesando {nombre}: {e}")
-                estado_cadenas[nombre] = {"ok": False, "error": str(e), "peliculas": 0}
+    if tareas_a_ejecutar:
+        with ThreadPoolExecutor(max_workers=min(6, len(tareas_a_ejecutar))) as executor:
+            futuros = {executor.submit(func): nombre for nombre, func in tareas_a_ejecutar}
+            for futuro in as_completed(futuros):
+                nombre = futuros[futuro]
+                completadas += 1
+                try:
+                    res = futuro.result()
+                    peliculas.extend(res)
+                    estado_cadenas[nombre] = {"ok": True, "peliculas": len(res)}
+                except Exception as e:
+                    print(f"Error procesando {nombre}: {e}")
+                    estado_cadenas[nombre] = {"ok": False, "error": str(e), "peliculas": 0}
 
     # Si se especificó días de anticipación, limitar las funciones de TODAS las cadenas a esa ventana
     if dias_disponibilidad and dias_disponibilidad > 0:
@@ -371,7 +401,19 @@ def main():
         peliculas = peliculas_filtradas
 
     peliculas.sort(key=lambda p: (p.get("titulo") or "").lower())
-    guardar_json(peliculas, metadata={"estado_cadenas": estado_cadenas})
+    guardar_json(
+        peliculas,
+        metadata={
+            "estado_cadenas": estado_cadenas,
+            "cobertura": {
+                "nacional": cobertura.get("nacional", True),
+                "ciudad": ciudad,
+                "cadenas_activas": sorted(list(cadenas_activas)),
+                "cadenas_omitidas": sorted(list(cadenas_omitidas)),
+                "sedes_por_cadena": cobertura.get("sedes_por_cadena", {}),
+            },
+        },
+    )
     finalizar_monitoreo_cadenas(len(peliculas))
 
 

@@ -160,22 +160,32 @@ def _ejecutar_scraper_en_segundo_plano(
             cancelacion_solicitada = False
 
         if fue_cancelado:
-            _escribir_estado({
+            estado_existente = _leer_estado()
+            estado_existente.update({
                 "en_progreso": False,
                 "finalizado": _ahora_iso(),
                 "error": None,
                 "cancelado": True,
             })
+            _escribir_estado(estado_existente)
             return
 
         if proceso.returncode == 0:
-            _escribir_estado({"en_progreso": False, "finalizado": _ahora_iso(), "error": None})
+            estado_existente = _leer_estado()
+            estado_existente.update({
+                "en_progreso": False,
+                "finalizado": _ahora_iso(),
+                "error": None,
+            })
+            _escribir_estado(estado_existente)
         else:
-            _escribir_estado({
+            estado_existente = _leer_estado()
+            estado_existente.update({
                 "en_progreso": False,
                 "finalizado": _ahora_iso(),
                 "error": (stderr or "Error desconocido")[-2000:],
             })
+            _escribir_estado(estado_existente)
     except Exception as error:
         _escribir_estado({"en_progreso": False, "finalizado": _ahora_iso(), "error": str(error)})
     finally:

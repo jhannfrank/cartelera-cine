@@ -159,6 +159,16 @@ function renderDataFreshnessBadge(isoString) {
       });
     }
   }
+
+  if (state.cobertura && !state.cobertura.nacional && state.cobertura.ciudad) {
+    const scopeHtml = `
+      <div class="hero-scope-pill" title="Cartelera limitada a ${escapeHTML(state.cobertura.ciudad)}. Las cadenas sin presencia física fueron omitidas automáticamente.">
+        📍 <strong>${escapeHTML(state.cobertura.ciudad)}</strong>
+        <span class="hero-scope-cadenas">(${escapeHTML((state.cobertura.cadenas_activas || []).join(', '))})</span>
+      </div>
+    `;
+    els.scrapedAt.insertAdjacentHTML("beforeend", scopeHtml);
+  }
 }
 
 const norm = (value) =>
@@ -415,6 +425,8 @@ async function loadData() {
     const isLegacyArray = Array.isArray(payload);
     state.peliculas = isLegacyArray ? payload : payload.peliculas || [];
     state.scrapedAt = isLegacyArray ? null : payload.scraped_at || null;
+    state.cobertura = isLegacyArray ? null : payload.cobertura || null;
+    state.estadoCadenas = isLegacyArray ? null : payload.estado_cadenas || null;
     renderDataFreshnessBadge(state.scrapedAt);
     hydrateFilters();
     restoreUserPreferences();
@@ -571,12 +583,44 @@ function updateChainPillsSelection() {
   const container = document.querySelector("#chainPillsSelector");
   if (!container) return;
   const selected = new Set(Array.from(els.chainFilter.selectedOptions).map((o) => o.value).filter(Boolean));
+  const selectedCities = new Set(Array.from(els.cityFilter.selectedOptions).map((o) => o.value).filter(Boolean));
+
+  // Determinar qué cadenas tienen funciones/sedes en las ciudades seleccionadas
+  let availableChains = null;
+  if (selectedCities.size > 0 && state.peliculas && state.peliculas.length > 0) {
+    availableChains = new Set();
+    state.peliculas.forEach((m) => {
+      const mCadena = getMovieChain(m);
+      (m.sedes || []).forEach((s) => {
+        if (selectedCities.has(s.ciudad)) {
+          if (s.cadena) availableChains.add(s.cadena);
+          else if (mCadena) availableChains.add(mCadena);
+        }
+      });
+    });
+  }
+
   container.querySelectorAll(".chain-select-pill").forEach((pill) => {
     const chain = pill.dataset.chain;
     if (!chain) {
       pill.classList.toggle("is-active", selected.size === 0);
+      pill.classList.remove("is-unavailable");
+      pill.removeAttribute("title");
     } else {
       pill.classList.toggle("is-active", selected.has(chain));
+      if (availableChains !== null) {
+        const hasPresencia = availableChains.has(chain);
+        pill.classList.toggle("is-unavailable", !hasPresencia);
+        if (!hasPresencia) {
+          const citiesText = Array.from(selectedCities).join(", ");
+          pill.title = `${chain} no opera en ${citiesText}`;
+        } else {
+          pill.removeAttribute("title");
+        }
+      } else {
+        pill.classList.remove("is-unavailable");
+        pill.removeAttribute("title");
+      }
     }
   });
 }
@@ -4302,6 +4346,15 @@ function initCustomChecklistsEvents() {
     chainPills.addEventListener("click", (e) => {
       const pill = e.target.closest(".chain-select-pill");
       if (!pill) return;
+      if (pill.classList.contains("is-unavailable")) {
+        const chainName = pill.dataset.chain;
+        const selectedCities = Array.from(els.cityFilter.selectedOptions).map((o) => o.value).filter(Boolean);
+        const cityStr = selectedCities.join(", ");
+        if (typeof showToast === "function") {
+          showToast(`📍 <strong>${escapeHTML(chainName)}</strong> no cuenta con salas de cine en <strong>${escapeHTML(cityStr)}</strong>.`);
+        }
+        return;
+      }
       const chain = pill.dataset.chain;
       if (!chain) {
         // "Todas" selected

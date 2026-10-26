@@ -98,6 +98,67 @@ class TestAuditoriaSeguridadYData(unittest.TestCase):
             self.assertEqual(datos["cadenas"][c_nom]["completados"], 10)
             self.assertEqual(datos["cadenas"][c_nom]["peliculas"], 20)
 
+    def test_analizar_presencia_territorial(self):
+        from app.cobertura import analizar_presencia_territorial
+
+        # 1. Nacional (sin filtro)
+        r_nac = analizar_presencia_territorial()
+        self.assertTrue(r_nac["nacional"])
+        self.assertEqual(len(r_nac["cadenas_activas"]), 6)
+        self.assertEqual(len(r_nac["cadenas_omitidas"]), 0)
+
+        # 2. Arequipa: solo Cinemark y Cineplanet
+        r_aqp = analizar_presencia_territorial("Arequipa")
+        self.assertFalse(r_aqp["nacional"])
+        self.assertEqual(r_aqp["cadenas_activas"], {"Cinemark", "Cineplanet"})
+        self.assertEqual(r_aqp["cadenas_omitidas"], {"Cinépolis", "Cine Star", "Movie Time", "UVK"})
+        self.assertIn("Arequipa", r_aqp["detalle_omision"]["Cinépolis"])
+
+        # 3. Cusco: solo Cineplanet
+        r_cusco = analizar_presencia_territorial("Cusco")
+        self.assertEqual(r_cusco["cadenas_activas"], {"Cineplanet"})
+        self.assertEqual(len(r_cusco["cadenas_omitidas"]), 5)
+
+        # 4. Ayacucho: solo Cine Star
+        r_aya = analizar_presencia_territorial("Ayacucho")
+        self.assertEqual(r_aya["cadenas_activas"], {"Cine Star"})
+
+        # 5. Barranca: solo Movie Time
+        r_bar = analizar_presencia_territorial("Barranca")
+        self.assertEqual(r_bar["cadenas_activas"], {"Movie Time"})
+
+    def test_monitoreo_cadenas_sin_presencia(self):
+        cadenas_test = ["Cinépolis", "Cinemark", "Cine Star", "Movie Time", "UVK", "Cineplanet"]
+        inicializar_monitoreo_cadenas(cadenas_test, etapa="Prueba sin presencia")
+
+        # Marcar cadenas omitidas
+        for c in ["Cinépolis", "Cine Star", "Movie Time", "UVK"]:
+            registrar_progreso_cadena(
+                c,
+                "Sin presencia",
+                completados=1,
+                total=1,
+                detalle="No opera en Arequipa",
+                sin_presencia=True,
+                tiempo_s=0.0,
+                imprimir_consola=False,
+            )
+
+        # Simular que Cinemark y Cineplanet terminan
+        registrar_progreso_cadena("Cinemark", "Completado", completados=1, total=1, ok=True, peliculas=10, tiempo_s=1.5, imprimir_consola=False)
+        registrar_progreso_cadena("Cineplanet", "Completado", completados=1, total=1, ok=True, peliculas=25, tiempo_s=2.0, imprimir_consola=False)
+
+        finalizar_monitoreo_cadenas(35)
+
+        with open(ESTADO_PATH, "r", encoding="utf-8") as f:
+            datos = json.load(f)
+
+        self.assertEqual(datos["porcentaje"], 100.0)
+        self.assertTrue(datos["cadenas"]["Cinépolis"]["sin_presencia"])
+        self.assertEqual(datos["cadenas"]["Cinépolis"]["peliculas"], 0)
+        self.assertEqual(datos["cadenas"]["Cinemark"]["peliculas"], 10)
+        self.assertFalse(datos["cadenas"]["Cinemark"].get("sin_presencia", False))
+
 
 if __name__ == "__main__":
     unittest.main()
