@@ -5688,18 +5688,81 @@ html, body {
     justify-content: center;
   }
 
+  .quick-dock {
+    padding: 0.75rem 0.85rem !important;
+    border-radius: 16px !important;
+    gap: 0.65rem !important;
+    margin-top: 0.4rem !important;
+  }
+
   .quick-bar {
     display: flex;
     flex-direction: column;
-    gap: 0.8rem;
+    gap: 0.65rem;
+    align-items: stretch;
   }
 
   .quick-search {
-    width: 100%;
+    flex: none !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  .quick-search.field,
+  label.quick-search {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.35rem !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  .quick-search.field span,
+  label.quick-search span {
+    height: auto !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 0.78rem !important;
+  }
+
+  .quick-search .search-input-wrap {
+    height: auto !important;
+    min-height: 0 !important;
   }
 
   .quick-view {
-    width: 100%;
+    flex: none !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    gap: 0.35rem !important;
+  }
+
+  .view-segmented-dock {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none !important;
+    padding: 3px !important;
+    gap: 4px !important;
+    box-sizing: border-box !important;
+  }
+
+  .view-segmented-dock::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .view-segmented-btn {
+    flex: 1 0 auto !important;
+    white-space: nowrap !important;
+    min-height: 38px !important;
+    padding: 0.4rem 0.65rem !important;
+    font-size: 0.78rem !important;
+    border-radius: 9px !important;
   }
 
   /* Modales estilo Bottom Sheet nativo en móvil */
