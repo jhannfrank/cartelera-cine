@@ -17,6 +17,7 @@ function formatUpdateTimestamp(isoString) {
 }
 
 function formatDuration(totalSeconds) {
+  if (totalSeconds == null || Number.isNaN(totalSeconds) || !Number.isFinite(totalSeconds)) return "0s";
   const seconds = Math.max(0, Math.round(totalSeconds));
   const minutes = Math.floor(seconds / 60);
   const remaining = seconds % 60;
@@ -51,7 +52,7 @@ function setUpdateStatusMessage(text, tone) {
   el.dataset.tone = tone || "info";
 }
 
-function setUpdateProgress(visible, porcentaje, iniciadoISO) {
+function setUpdateProgress(visible, porcentaje, iniciadoISO, finalizadoISO) {
   const wrap = document.querySelector("#updateProgress");
   const fill = document.querySelector("#updateProgressFill");
   const percentEl = document.querySelector("#updateProgressPercent");
@@ -70,13 +71,19 @@ function setUpdateProgress(visible, porcentaje, iniciadoISO) {
 
   if (iniciadoISO) {
     const inicio = new Date(iniciadoISO).getTime();
-    const ahora = Date.now();
+    const fin = finalizadoISO ? new Date(finalizadoISO).getTime() : Date.now();
     if (!Number.isNaN(inicio)) {
-      const transcurridoSeg = (ahora - inicio) / 1000;
+      const transcurridoSeg = Math.max(0, (fin - inicio) / 1000);
+      if (pct >= 100) {
+        timeEl.textContent = `Completado en ${formatDuration(transcurridoSeg)}`;
+        return;
+      }
       let texto = `Transcurrido: ${formatDuration(transcurridoSeg)}`;
       if (pct > 3 && pct < 100) {
         const restanteSeg = (transcurridoSeg / pct) * (100 - pct);
-        texto += ` | Restante estimado: ~${formatDuration(restanteSeg)}`;
+        if (Number.isFinite(restanteSeg) && restanteSeg > 0) {
+          texto += ` | Restante estimado: ~${formatDuration(restanteSeg)}`;
+        }
       }
       timeEl.textContent = texto;
       return;
@@ -201,7 +208,9 @@ async function pollUpdateStatus() {
 
     if (estado.cadenas) {
       renderChainsProgressGrid(estado.cadenas);
-      // Mantener visible el monitor de cadenas 6 segundos para que el usuario aprecie el resumen de tiempos
+      // Forzar visualmente 100% de éxito con tiempo final real
+      setUpdateProgress(true, 100, estado.iniciado, estado.finalizado);
+      // Mantener visible el monitor de cadenas 7 segundos para que el usuario aprecie el resumen de tiempos
       if (chainsAutoDismissTimer) clearTimeout(chainsAutoDismissTimer);
       chainsAutoDismissTimer = setTimeout(() => {
         const grid = document.querySelector("#chainsProgressGrid");

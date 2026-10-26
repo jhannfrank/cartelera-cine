@@ -234,6 +234,9 @@ class CineplanetScraper(BaseScraper):
                 "capacidad": data.get("seatsTotal", 0),
             }
 
+        if progreso_callback and total > 0:
+            progreso_callback("seats", 0, total, f"Consultando aforos (0/{total})...")
+
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = [
                 executor.submit(consultar, combined_id)
@@ -244,7 +247,7 @@ class CineplanetScraper(BaseScraper):
                 if disponibilidad:
                     availability_index[combined_id] = disponibilidad
                 completados += 1
-                if progreso_callback and (completados % 20 == 0 or completados == total):
+                if progreso_callback and (completados % 5 == 0 or completados == total):
                     progreso_callback("seats", completados, total, f"{completados}/{total} aforos consultados")
 
         obtenidos = len(availability_index)
