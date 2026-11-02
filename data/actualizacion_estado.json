@@ -1,76 +1,76 @@
 {
   "en_progreso": false,
   "porcentaje": 100.0,
-  "etapa": "Actualización finalizada con éxito (215 películas totales)",
-  "iniciado": "2026-11-01T22:31:51.492409+00:00",
-  "actualizado": "2026-11-01T22:31:56.839947+00:00",
-  "finalizado": "2026-11-01T22:31:56.839861+00:00",
+  "etapa": "Actualización finalizada con éxito (142 películas totales)",
+  "iniciado": "2026-11-02T20:35:05.338453+00:00",
+  "actualizado": "2026-11-02T20:35:09.806044+00:00",
+  "finalizado": "2026-11-02T20:35:09.805983+00:00",
   "cadenas": {
     "Cinépolis": {
       "estado": "Completado",
       "completados": 1,
       "total": 1,
-      "detalle": "26 películas listas",
-      "tiempo_s": 0.58,
-      "activo": false,
-      "ok": true,
-      "error": null,
-      "peliculas": 26
-    },
-    "Cinemark": {
-      "estado": "Completado",
-      "completados": 1,
-      "total": 1,
-      "detalle": "31 películas listas",
-      "tiempo_s": 2.35,
-      "activo": false,
-      "ok": true,
-      "error": null,
-      "peliculas": 31
-    },
-    "Cine Star": {
-      "estado": "Completado",
-      "completados": 1,
-      "total": 1,
       "detalle": "25 películas listas",
-      "tiempo_s": 5.19,
+      "tiempo_s": 0.74,
       "activo": false,
       "ok": true,
       "error": null,
       "peliculas": 25
     },
+    "Cinemark": {
+      "estado": "Completado",
+      "completados": 1,
+      "total": 1,
+      "detalle": "28 películas listas",
+      "tiempo_s": 4.21,
+      "activo": false,
+      "ok": true,
+      "error": null,
+      "peliculas": 28
+    },
+    "Cine Star": {
+      "estado": "Completado",
+      "completados": 1,
+      "total": 1,
+      "detalle": "21 películas listas",
+      "tiempo_s": 4.39,
+      "activo": false,
+      "ok": true,
+      "error": null,
+      "peliculas": 21
+    },
     "Movie Time": {
       "estado": "Completado",
       "completados": 1,
       "total": 1,
-      "detalle": "47 películas listas",
-      "tiempo_s": 5.23,
+      "detalle": "44 películas listas",
+      "tiempo_s": 3.92,
       "activo": false,
       "ok": true,
       "error": null,
-      "peliculas": 47
+      "peliculas": 44
     },
     "UVK": {
       "estado": "Completado",
       "completados": 1,
       "total": 1,
       "detalle": "24 películas listas",
-      "tiempo_s": 2.91,
+      "tiempo_s": 3.46,
       "activo": false,
       "ok": true,
       "error": null,
       "peliculas": 24
     },
     "Cineplanet": {
-      "estado": "Completado",
-      "completados": 1,
+      "estado": "Error de extracción",
+      "completados": 0,
       "total": 1,
-      "detalle": "62 películas listas",
-      "tiempo_s": 1.18,
+      "detalle": "HTTP Error 406: Not Acceptable",
+      "tiempo_s": 0.11,
       "activo": false,
-      "ok": true,
-      "error": null,
-      "peliculas": 62
+      "ok": false,
+      "error": "HTTP Error 406: Not Acceptable",
+      "peliculas": 0
     }
   },
   "error": null
