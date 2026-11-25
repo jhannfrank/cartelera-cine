@@ -1,76 +1,76 @@
 {
   "en_progreso": false,
   "porcentaje": 100.0,
-  "etapa": "Actualización finalizada con éxito (167 películas totales)",
-  "iniciado": "2026-11-24T20:56:08.913907+00:00",
-  "actualizado": "2026-11-24T20:56:13.979228+00:00",
-  "finalizado": "2026-11-24T20:56:13.979190+00:00",
+  "etapa": "Actualización finalizada con éxito (177 películas totales)",
+  "iniciado": "2026-11-25T20:18:37.320216+00:00",
+  "actualizado": "2026-11-25T20:18:42.627702+00:00",
+  "finalizado": "2026-11-25T20:18:42.627625+00:00",
   "cadenas": {
     "Cinépolis": {
       "estado": "Completado",
       "completados": 1,
       "total": 1,
-      "detalle": "19 películas listas",
-      "tiempo_s": 0.38,
+      "detalle": "22 películas listas",
+      "tiempo_s": 0.66,
       "activo": false,
       "ok": true,
       "error": null,
-      "peliculas": 19
+      "peliculas": 22
     },
     "Cinemark": {
       "estado": "Completado",
       "completados": 1,
       "total": 1,
-      "detalle": "18 películas listas",
-      "tiempo_s": 1.26,
+      "detalle": "21 películas listas",
+      "tiempo_s": 3.31,
       "activo": false,
       "ok": true,
       "error": null,
-      "peliculas": 18
+      "peliculas": 21
     },
     "Cine Star": {
       "estado": "Completado",
       "completados": 1,
       "total": 1,
-      "detalle": "12 películas listas",
-      "tiempo_s": 4.91,
+      "detalle": "15 películas listas",
+      "tiempo_s": 5.15,
       "activo": false,
       "ok": true,
       "error": null,
-      "peliculas": 12
+      "peliculas": 15
     },
     "Movie Time": {
       "estado": "Completado",
       "completados": 1,
       "total": 1,
-      "detalle": "33 películas listas",
-      "tiempo_s": 4.84,
+      "detalle": "32 películas listas",
+      "tiempo_s": 3.65,
       "activo": false,
       "ok": true,
       "error": null,
-      "peliculas": 33
+      "peliculas": 32
     },
     "UVK": {
       "estado": "Completado",
       "completados": 1,
       "total": 1,
-      "detalle": "26 películas listas",
-      "tiempo_s": 3.64,
+      "detalle": "29 películas listas",
+      "tiempo_s": 5.17,
       "activo": false,
       "ok": true,
       "error": null,
-      "peliculas": 26
+      "peliculas": 29
     },
     "Cineplanet": {
       "estado": "Completado",
       "completados": 1,
       "total": 1,
-      "detalle": "59 películas listas",
-      "tiempo_s": 0.48,
+      "detalle": "58 películas listas",
+      "tiempo_s": 1.51,
       "activo": false,
       "ok": true,
       "error": null,
-      "peliculas": 59
+      "peliculas": 58
     }
   },
   "error": null
